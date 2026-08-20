@@ -20,21 +20,6 @@ same one, with the same permission model.
 
 ---
 
-## The one rule
-
-**Any change to workspace data is an Ablo write.** Not a Zustand action, not a
-local array, not a fetch to a route that touches Postgres directly.
-
-This is not style. A write that skips Ablo gets none of the guarantees above and
-_looks identical on the screen of the person who made it_ — which is exactly how
-four surfaces in this codebase once shipped reporting success and saving nothing.
-
-The test for any new surface: **post in one browser and watch a second one that
-never reloads.** A reload test is not enough; the data is usually in the database
-either way. `AI_GUIDE.md` has the full rule and its deliberate exceptions.
-
----
-
 ## Stack
 
 | Concern       | Choice                                       | Why                                                        |
@@ -159,8 +144,10 @@ fans out on, and how a signed-in person maps to those groups.
 
 Issues and pull requests are welcome. Two things worth knowing before you open one:
 
-1. **Verify in two browsers.** See the rule above. A change that only reloads
-   correctly is not finished.
+1. **Verify in two browsers.** Every change to workspace data is an Ablo write,
+   and the test is to post in one browser and watch a second that never reloads
+   — a reload test passes either way, because the data is usually in the
+   database regardless. `AI_GUIDE.md` has the rule and its exceptions.
 2. **Follow the Ablo conventions in `AI_GUIDE.md`.** Short, specific rules for
    working with the Ablo API here — how to page a server read, how to narrow one
    by a reference field, how to clear a field. Worth five minutes before your
