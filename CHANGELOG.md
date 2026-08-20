@@ -12,6 +12,32 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.3.0]
+
+### Added
+
+- **A job title on your profile**, saved from profile settings. `user.title` is
+  a new column.
+
+### Fixed
+
+- **The profile page's fields did not save.** Full name, Title and Username
+  were inputs with a `defaultValue` and no handler: you could type into them
+  and tab away, and the text was gone on the next load. Full name and Title are
+  controlled now and save on blur through Better Auth. Identity is Better
+  Auth's rather than Ablo's, so the change does not appear live in another
+  browser the way workspace data does — it survives a reload, which is the
+  right test for this one.
+
+### Changed
+
+- **Username on the profile is disabled rather than editable.** Nothing in the
+  app resolves a handle — there are no `@mentions` — so saving one would store
+  text that nothing reads.
+- The README no longer opens with the contributor rule about Ablo writes. The
+  rule and its deliberate exceptions live in `AI_GUIDE.md`, which is where
+  someone changing the code will be.
+
 ## [0.2.0]
 
 The five surfaces that were left disabled at 0.1.0, and the bug behind every
@@ -131,6 +157,7 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.1.0

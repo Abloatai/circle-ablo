@@ -15,6 +15,8 @@ export const user = pgTable('user', {
    type: text('type').default('human'),
    status: text('status').default('offline'),
    timezone: text('timezone'),
+   /** Job title, shown on the member profile. Free text; nothing parses it. */
+   title: text('title'),
 });
 
 export const session = pgTable(

@@ -120,6 +120,13 @@
          "when": 1787219748471,
          "tag": "0016_living_lethal_legion",
          "breakpoints": true
+      },
+      {
+         "idx": 17,
+         "version": "7",
+         "when": 1787221426111,
+         "tag": "0017_adorable_the_enforcers",
+         "breakpoints": true
       }
    ]
 }

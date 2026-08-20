@@ -25,6 +25,7 @@ export async function getMembers(organizationId: string): Promise<Member[]> {
          type: t.user.type,
          status: t.user.status,
          timezone: t.user.timezone,
+         title: t.user.title,
          createdAt: t.user.createdAt,
          role: t.member.role,
       })
@@ -60,6 +61,7 @@ export async function getMembers(organizationId: string): Promise<Member[]> {
       joinedDate: row.createdAt.toISOString().slice(0, 10),
       teamIds: teamsByUser.get(row.id) ?? [],
       timezone: row.timezone ?? 'UTC',
+      title: row.title,
       type: (row.type as Member['type']) ?? 'human',
    }));
 }

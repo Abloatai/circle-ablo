@@ -8,6 +8,8 @@ import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { SettingsCard, SettingsRow, SettingsSection, SettingsShell } from './shared';
 import { LeaveWorkspaceDialog } from './leave-dialogs';
+import { ProfileField } from './profile-field';
+import { Unavailable } from '@/components/common/unavailable';
 
 /** Personal "Profile" settings. */
 export default function Profile() {
@@ -45,22 +47,35 @@ export default function Profile() {
                />
                <SettingsRow
                   title="Full name"
-                  trailing={<Input key={me.id} defaultValue={me.name} className="h-8 w-44" />}
+                  trailing={
+                     <ProfileField key={me.id} field="name" label="Full name" initial={me.name} />
+                  }
                />
                <SettingsRow
                   title="Title"
-                  description="Your job title or role"
-                  trailing={<Input placeholder="Software engineer" className="h-8 w-44" />}
+                  description="Your job title or role, shown on your member profile"
+                  trailing={
+                     <ProfileField
+                        key={me.id}
+                        field="title"
+                        label="Title"
+                        initial={me.title ?? ''}
+                        placeholder="Software engineer"
+                     />
+                  }
                />
                <SettingsRow
                   title="Username"
-                  description="One word, like a nickname or first name"
+                  description="Nothing resolves a handle yet — there are no @mentions to look one up"
                   trailing={
-                     <Input
-                        key={me.id}
-                        defaultValue={me.email.split('@')[0]}
-                        className="h-8 w-44"
-                     />
+                     <Unavailable reason="There is no mention system for a handle to resolve against">
+                        <Input
+                           disabled
+                           value={me.email.split('@')[0]}
+                           readOnly
+                           className="h-8 w-44"
+                        />
+                     </Unavailable>
                   }
                />
             </SettingsCard>

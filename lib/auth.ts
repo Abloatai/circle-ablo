@@ -26,6 +26,8 @@ export const auth = betterAuth({
          status: { type: 'string', defaultValue: 'offline', input: false },
          /** IANA zone, used to show a member's local time. */
          timezone: { type: 'string', required: false },
+         /** Job title, shown on the member profile. Editable by the person. */
+         title: { type: 'string', required: false },
       },
    },
    plugins: [

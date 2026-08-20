@@ -9,6 +9,8 @@ export interface User {
    teamIds: string[];
    /** IANA timezone, used to display the member's local time. */
    timezone: string;
+   /** Job title, set by the person in profile settings. Free text. */
+   title?: string | null;
 }
 
 const avatarUrl = (seed: string) => `https://api.dicebear.com/9.x/glass/svg?seed=${seed}`;
