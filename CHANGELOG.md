@@ -12,6 +12,16 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.0]
+
+### Added
+
+- **Every workspace gets an agent.** Only the seed used to create one, so
+  handing an issue to an agent — the product's headline capability — existed in
+  the demo data and nowhere else. Anyone who signed up got a workspace where
+  the assignee picker listed only themselves. Provisioning creates `scout`
+  alongside the default statuses and labels now.
+
 ## [0.4.0]
 
 ### Added
@@ -206,7 +216,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.2.0

@@ -6,6 +6,9 @@ import { auth } from '@/lib/auth';
 import { labels as defaultLabels } from '@/lib/domain/labels';
 import { status as defaultStatuses } from '@/lib/domain/status';
 
+/** What a new workspace's agent is called. The seed uses the same name. */
+const AGENT_NAME = 'scout';
+
 /**
  * Creates a workspace for someone who just signed up.
  *
@@ -95,12 +98,73 @@ export async function createWorkspace(input: {
       }))
    );
 
+   await provisionAgent({
+      organizationId: organization.id,
+      teamId: team.id,
+      createdBy: input.userId,
+   });
+
    await auth.api.setActiveOrganization({
       body: { organizationId: organization.id },
       headers: requestHeaders,
    });
 
    return { slug: input.slug, teamKey };
+}
+
+/**
+ * Gives the workspace its agent.
+ *
+ * Handing an issue to an agent is an ordinary assignment — the assignee picker
+ * lists it beside the people — so a workspace with no agent user has no way to
+ * reach the feature at all. Only the seed used to create one, which meant the
+ * headline capability of the product existed in the demo data and nowhere else:
+ * anyone who signed up got a workspace where it was simply absent.
+ *
+ * The agent is per workspace rather than one row shared between them. It is
+ * referenced by `issue.assignee_id` and by every run, and renaming yours should
+ * not rename anyone else's.
+ *
+ * There is deliberately no `account` row: an agent never signs in. It is
+ * reached through `app/api/agent/dispatch`, which mints a session scoped to the
+ * run's team.
+ */
+async function provisionAgent(input: {
+   organizationId: string;
+   teamId: string;
+   createdBy: string;
+}): Promise<void> {
+   const agentId = `agent_${input.organizationId}`;
+
+   await db.insert(t.user).values({
+      id: agentId,
+      name: AGENT_NAME,
+      // Unique per workspace because `user.email` is unique, and never
+      // deliverable — nothing should be able to send here.
+      email: `${AGENT_NAME}+${input.organizationId}@agents.invalid`,
+      emailVerified: true,
+      image: `https://api.dicebear.com/9.x/glass/svg?seed=${AGENT_NAME}`,
+      type: 'agent',
+      status: 'online',
+      timezone: 'UTC',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+   });
+
+   await db.insert(t.member).values({
+      id: `member_${agentId}`,
+      organizationId: input.organizationId,
+      userId: agentId,
+      role: 'member',
+      createdAt: new Date(),
+   });
+
+   await db.insert(t.teamMember).values({
+      id: `tm_${agentId}_${input.teamId}`,
+      teamId: input.teamId,
+      userId: agentId,
+      createdAt: new Date(),
+   });
 }
 
 /** Turns a workspace name into a URL-safe slug. */
