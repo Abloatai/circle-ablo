@@ -111,6 +111,8 @@ export const team = pgTable(
        * readable, but nothing new can be created in it. Null means active.
        */
       archivedAt: timestamp('archived_at'),
+      /** Free text shown on the team's overview page. */
+      description: text('description'),
    },
    (table) => [index('team_organizationId_idx').on(table.organizationId)]
 );

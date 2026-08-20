@@ -12,6 +12,55 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.4.0]
+
+### Added
+
+- **Tests.** Nineteen integration tests driving the real UI against a
+  production build and asserting against Postgres, plus a handful of unit
+  tests. `pnpm test:unit` runs in under a second; `pnpm test:e2e` needs a
+  seeded database and Ablo credentials, so it is a pre-release step rather
+  than a CI one. `AI_GUIDE.md` says what they cover and why they are
+  integration-first.
+- **Creating an issue is findable.** The button says "New issue" instead of
+  being an unlabelled pencil, `C` opens the dialog, and a team with no issues
+  offers to create the first one — which is what a workspace shows immediately
+  after signing up.
+- **A team description**, edited in place on the team overview. `team.description`
+  is a new column.
+- The team overview shows live open and total issue counts, and the team's
+  cycles.
+
+### Fixed
+
+- **The team overview was mostly scenery.** Team resources listed the
+  documents fixture, so every team showed the same documents and none of them
+  its own; "Add a description..." was that literal string; two icon buttons had
+  no handler; "Views" linked to `#`; "Team settings" went to the workspace's
+  settings rather than the team's; and a missing team fell through to the first
+  one in the list, showing another team's name, members and documents under
+  this team's URL.
+- **The Views page named a workspace nobody was in.** Its header row read
+  "LN · LNDev UI · Workspace" in every workspace — both the badge and the name
+  were baked in from the template this began as. The same leftover is gone from
+  seven settings files that offered to sync your calendar to "LNDev UI" or
+  named the agent "LNDev Agent".
+
+### Changed
+
+- **The Reviews section is switched off** behind `REVIEWS_ENABLED`. It rendered
+  an 1185-line fixture — hand-written diffs, invented commit SHAs, the same six
+  pull requests for everyone — while every other list in Circle reads live.
+  Making it real means real Git data, which is a project rather than a fix.
+- **Integrations and Connected accounts are switched off** behind
+  `INTEGRATIONS_ENABLED`. Neither connects to anything, and Connected accounts
+  went further by listing a GitHub account named "octo-relay" with a Connected
+  badge — asserting a link that has never existed.
+
+   What is real: pasting a pull request URL onto an issue resolves its title and
+   state from GitHub. There is nothing to connect and no repository to choose —
+   the repo is whichever the pasted URL names.
+
 ## [0.3.0]
 
 ### Added
@@ -157,7 +206,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.1.0

@@ -53,6 +53,8 @@ goes through Ablo.
 | `components/ui/`      | shadcn primitives. Prefer composing over editing                      |
 | `store/`              | Zustand — **tab-local state only**: selection, filters, panel open    |
 | `lib/domain/`         | Types, the icon registry, new-workspace defaults, and the seed        |
+| `lib/features.ts`     | Flags for surfaces that exist but are switched off                    |
+| `tests/`              | Playwright: `e2e` drives the real UI, `unit` is pure logic            |
 
 ---
 
@@ -79,6 +81,55 @@ Say you want a new kind of row.
 7. **Action hook** beside the others. Clearing a field is `null`; `undefined` is
    dropped from the payload and leaves the old value.
 8. **Verify in two browsers**, neither reloading.
+9. **Write the test** in `tests/e2e`, asserting against Postgres rather than the
+   screen you just wrote to. Then break the thing on purpose and watch the test
+   fail — a test that has never failed is not evidence. Two checks written by
+   hand here passed while proving nothing, and one of those was a test written
+   for a fix earlier the same day.
+
+---
+
+## Tests
+
+```bash
+pnpm test:unit   # pure logic, no server, under a second
+pnpm test:e2e    # a production build against the real database
+pnpm test        # both
+```
+
+`tests/e2e` is integration-first on purpose. Every failure this codebase has
+had was a write that _appeared_ to succeed — a component reporting success and
+saving nothing, a field saving and reading back empty, a pool wedging — and none
+of those is visible to a unit test or to a test that only reads the DOM. So each
+one drives the real UI and then asserts against Postgres through
+`tests/helpers/db.ts`.
+
+They need a seeded database (`pnpm db:seed`) and the Ablo credentials in
+`.env.local`. People are resolved from the database rather than hardcoded, and
+sign-in happens once in `tests/global-setup.ts` because Better Auth rate-limits
+the endpoint. Anything a test creates, it creates itself and cleans up — no test
+deletes a seeded team.
+
+`tests/helpers/ui.ts` carries the interaction traps worth knowing: the issue
+context menu opens on the wrapper rather than the link inside it, menu items
+carry their shortcut in the accessible name, and controlled inputs need typing
+rather than `fill` before a gated submit button enables.
+
+---
+
+## Switched-off surfaces
+
+`lib/features.ts` holds a flag per surface that exists in the tree but is not
+on. Reviews and the integrations settings are both off: they render fixtures,
+or connect to nothing, and shipping them made the app claim things that were
+not true.
+
+Turning one off means both halves. The nav entry stays visible but stops being
+a link and says "Coming soon" on hover; the route calls `notFound()`. A disabled
+link whose URL still serves the page is not disabled, and there is a test for
+each that fails if either half moves without the other.
+
+Nothing is deleted — the work is planned, and a flag is one line to flip.
 
 ---
 

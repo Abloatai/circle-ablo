@@ -35,7 +35,7 @@ async function loadTeam(teamId: string): Promise<Loaded> {
    return { viewer, team };
 }
 
-/** Retire (`{ archived: true }`) or bring back (`{ archived: false }`). */
+/** Retire (`{ archived }`), bring back, or set the `description`. */
 export async function PATCH(
    request: Request,
    { params }: { params: Promise<{ teamId: string }> }
@@ -44,17 +44,31 @@ export async function PATCH(
    const loaded = await loadTeam(teamId);
    if (loaded.error) return loaded.error;
 
-   const body = (await request.json().catch(() => ({}))) as { archived?: boolean };
-   if (typeof body.archived !== 'boolean') {
-      return Response.json({ error: '`archived` must be true or false' }, { status: 400 });
+   const body = (await request.json().catch(() => ({}))) as {
+      archived?: boolean;
+      description?: string | null;
+   };
+
+   if (typeof body.archived === 'boolean') {
+      await db
+         .update(t.team)
+         .set({ archivedAt: body.archived ? new Date() : null })
+         .where(eq(t.team.id, teamId));
+      return Response.json({ ok: true, archived: body.archived });
    }
 
-   await db
-      .update(t.team)
-      .set({ archivedAt: body.archived ? new Date() : null })
-      .where(eq(t.team.id, teamId));
+   if (body.description !== undefined) {
+      const next = body.description?.trim() ?? '';
+      await db
+         .update(t.team)
+         // Empty means cleared, not an empty string sitting where a
+         // description used to be.
+         .set({ description: next.length > 0 ? next : null })
+         .where(eq(t.team.id, teamId));
+      return Response.json({ ok: true });
+   }
 
-   return Response.json({ ok: true, archived: body.archived });
+   return Response.json({ error: 'Nothing to update' }, { status: 400 });
 }
 
 /**

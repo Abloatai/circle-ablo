@@ -1,5 +1,6 @@
 'use client';
 
+import { NoIssuesYet } from './no-issues-yet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Issue, sortIssuesByPriority } from '@/lib/domain/issues';
@@ -282,7 +283,7 @@ export const GroupedIssuesView: FC<GroupedIssuesViewProps> = ({
                      {hiddenGroups.length > 0 && <HiddenColumns entries={hiddenGroups} />}
                      {boardGroups.length === 0 && hiddenGroups.length === 0 && (
                         <div className="flex items-center justify-center w-full h-40 text-sm text-muted-foreground">
-                           No issues to show.
+                           <NoIssuesYet filtered={totalIssues.length > 0} />
                         </div>
                      )}
                   </div>
@@ -305,9 +306,7 @@ export const GroupedIssuesView: FC<GroupedIssuesViewProps> = ({
          <CustomDragLayer />
          <div className="h-full overflow-y-auto">
             {listGroups.length === 0 && !showFooter && (
-               <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
-                  No issues to show.
-               </div>
+               <NoIssuesYet filtered={totalIssues.length > 0} />
             )}
             {listGroups.map((entry) => (
                <GroupIssues

@@ -28,12 +28,11 @@ import { initiatives as mockInitiatives } from '../lib/domain/initiatives';
 import { issues as mockIssues } from '../lib/domain/issues';
 import { getIssueDetail } from '../lib/domain/issue-details';
 import { getProjectDetail } from '../lib/domain/project-details';
+import { DEV_PASSWORD } from './dev-password';
 import { views as mockViews } from '../lib/domain/views';
 
 const ORG_ID = 'org_circle';
 const ORG_SLUG = 'circle';
-/** Every seeded person signs in with this. Development only. */
-const DEV_PASSWORD = 'circle-dev-password';
 
 const PRIORITY_LEVEL: Record<string, 0 | 1 | 2 | 3 | 4> = {
    'no-priority': 0,

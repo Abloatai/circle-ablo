@@ -2,10 +2,11 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { documentFolders } from '@/lib/domain/documents';
+import { useCycles, useIssues, useTeamDocuments } from '@/hooks/use-workspace-data';
+import { TeamDescription } from './team-description';
 import { useTeams } from '@/hooks/use-workspace-data';
 import { RiDonutChartFill } from '@remixicon/react';
-import { Box, CopyMinus, Layers, Plus, Settings, SquareStack } from 'lucide-react';
+import { Box, CopyMinus, FileText, Layers, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -16,18 +17,42 @@ import { useParams } from 'next/navigation';
 export default function TeamOverview() {
    const teams = useTeams();
    const { orgId, teamId } = useParams<{ orgId: string; teamId: string }>();
-   const team = teams.find((t) => t.id === teamId) ?? teams[0];
+   // No `?? teams[0]`: falling back showed a different team's name, members and
+   // documents under this team's URL, which is worse than saying nothing.
+   const team = teams.find((t) => t.id === teamId);
 
-   const pinnedDocuments = documentFolders
-      .flatMap((folder) => folder.documents)
-      .filter((doc) => doc.pinned);
+   const folders = useTeamDocuments(teamId);
+   const issues = useIssues();
+   const teamCycles = useCycles().filter((cycle) => cycle.teamId === teamId);
+
+   const documents = folders.flatMap((folder) => folder.documents);
+   const teamIssues = issues.filter((issue) => issue.teamId === teamId);
+   const openIssues = teamIssues.filter(
+      (issue) => issue.status?.category !== 'completed' && issue.status?.category !== 'canceled'
+   );
+
+   if (!team) {
+      return (
+         <div className="w-full max-w-5xl mx-auto px-8 py-10">
+            <h1 className="text-2xl font-medium">Team not found</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+               It may have been deleted, or you may have left it.
+            </p>
+         </div>
+      );
+   }
 
    const goToLinks = [
-      { label: 'Team settings', icon: Settings, href: `/${orgId}/settings` },
+      {
+         label: 'Team settings',
+         icon: Settings,
+         href: `/${orgId}/settings/teams/${team.id}`,
+      },
       { label: 'Issues', icon: CopyMinus, href: `/${orgId}/team/${team.id}/all` },
       { label: 'Cycles', icon: RiDonutChartFill, href: `/${orgId}/team/${team.id}/cycles` },
-      { label: 'Projects', icon: Box, href: `/${orgId}/projects` },
-      { label: 'Views', icon: Layers, href: '#' },
+      { label: 'Projects', icon: Box, href: `/${orgId}/team/${team.id}/projects` },
+      { label: 'Views', icon: Layers, href: `/${orgId}/team/${team.id}/views` },
+      { label: 'Documents', icon: FileText, href: `/${orgId}/team/${team.id}/documents` },
    ];
 
    return (
@@ -41,33 +66,54 @@ export default function TeamOverview() {
                <h1 className="text-3xl font-semibold">{team.name}</h1>
             </div>
 
-            <p className="mt-4 text-muted-foreground">Add a description...</p>
+            <TeamDescription teamId={team.id} initial={team.description ?? ''} />
+
+            <div className="mt-8 flex items-center gap-6 text-sm">
+               <Link
+                  href={`/${orgId}/team/${team.id}/all`}
+                  className="hover:text-foreground text-muted-foreground"
+               >
+                  <span className="font-medium text-foreground">{openIssues.length}</span> open of{' '}
+                  {teamIssues.length} issues
+               </Link>
+               <Link
+                  href={`/${orgId}/team/${team.id}/cycles`}
+                  className="hover:text-foreground text-muted-foreground"
+               >
+                  <span className="font-medium text-foreground">{teamCycles.length}</span>{' '}
+                  {teamCycles.length === 1 ? 'cycle' : 'cycles'}
+               </Link>
+            </div>
 
             <div className="mt-12">
                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">Team resources</h2>
-                  <div className="flex items-center gap-1">
-                     <Button variant="ghost" size="icon" className="size-7 rounded-full border">
-                        <Plus className="size-4" />
-                     </Button>
-                     <Button variant="ghost" size="icon" className="size-7 rounded-full border">
-                        <SquareStack className="size-4" />
-                     </Button>
-                  </div>
+                  <h2 className="text-xl font-semibold">Team documents</h2>
+                  <Button variant="ghost" size="xs" asChild>
+                     <Link href={`/${orgId}/team/${team.id}/documents`}>Open documents</Link>
+                  </Button>
                </div>
 
                <div className="mt-4 flex flex-col gap-1">
-                  {pinnedDocuments.length === 0 && (
-                     <p className="text-sm text-muted-foreground">No resources yet.</p>
+                  {documents.length === 0 && (
+                     <p className="text-sm text-muted-foreground">
+                        No documents yet.{' '}
+                        <Link
+                           href={`/${orgId}/team/${team.id}/documents`}
+                           className="underline hover:text-foreground"
+                        >
+                           Write one
+                        </Link>
+                        .
+                     </p>
                   )}
-                  {pinnedDocuments.map((doc) => (
+                  {documents.slice(0, 8).map((doc) => (
                      <Link
                         key={doc.id}
                         href={`/${orgId}/team/${team.id}/documents`}
                         className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-md hover:bg-sidebar/50 text-sm"
                      >
                         <span className="text-base leading-none">{doc.icon}</span>
-                        <span className="font-medium">{doc.name}</span>
+                        <span className="font-medium">{doc.title}</span>
                      </Link>
                   ))}
                </div>

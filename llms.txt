@@ -45,6 +45,16 @@ Key facts for coding agents:
   rather than off a row, because `.from()`-mapped fields are only present on
   rows written through Ablo; rows seeded straight into Postgres need
   `ablo_tenant_id` stamped by `pnpm db:backfill` before they reach a client.
+- Tests: `pnpm test:unit` (pure logic, instant) and `pnpm test:e2e` (drives the
+  real UI against a production build and a seeded database, asserting against
+  Postgres through `tests/helpers/db.ts`). e2e needs Ablo credentials so it is a
+  pre-release step, not CI. Assert against the database, never against the
+  screen you just wrote to, and verify a new test by breaking the code and
+  watching it fail.
+- `lib/features.ts` flags surfaces that exist but are off — Reviews and the
+  integrations settings both render fixtures or connect to nothing. Switching
+  one off means the nav entry stops being a link *and* the route calls
+  `notFound()`.
 - URLs are `/{orgId}/…` where `orgId` is the workspace slug, taken from the URL
   or `useWorkspace().organizationSlug`. Never hardcode it.
 

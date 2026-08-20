@@ -8,6 +8,8 @@ export interface Team {
    joined: boolean;
    /** Retired: all history stays readable, nothing new can be created in it. */
    archived?: boolean;
+   /** Free text shown on the team's overview page. */
+   description?: string | null;
    color: string;
    members: User[];
    projects: Project[];

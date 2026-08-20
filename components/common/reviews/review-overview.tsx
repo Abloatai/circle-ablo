@@ -167,7 +167,7 @@ export function ReviewOverview({ review }: { review: Review }) {
                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <GitCommitHorizontal className="size-3.5 shrink-0" />
                   <span className="truncate">
-                     Atlas committed via LNDev Agent{' '}
+                     Atlas committed via Circle Agent{' '}
                      <span className="font-mono">{review.commits.at(-1)?.sha}</span>{' '}
                      {review.commits.at(-1)?.message} ({review.resolves.identifier}) ·{' '}
                      {review.commits.at(-1)?.timeAgo}

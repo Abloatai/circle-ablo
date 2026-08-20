@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { View } from '@/lib/domain/views';
 import { useSavedViews } from '@/hooks/use-workspace-data';
+import { useWorkspace } from '@/components/providers/workspace-provider';
 import { CreateView } from './create-view';
 import { useTeams } from '@/hooks/use-workspace-data';
 import { useViewsDisplayStore, ViewsOrdering } from '@/store/views-display-store';
@@ -151,6 +152,10 @@ export default function Views({ teamId }: { teamId?: string }) {
    const { ordering } = useViewsDisplayStore();
    const team = teamId ? teams.find((entry) => entry.id === teamId) : undefined;
    const savedViews = useSavedViews();
+   // This row said "LN · LNDev UI · Workspace" in every workspace — the badge
+   // and the name were both hardcoded from the template this began as.
+   const { organizationName } = useWorkspace();
+   const initials = organizationName.slice(0, 2).toUpperCase();
 
    const list = useMemo(() => {
       const wanted = tab === 'issues' ? 'issue' : 'project';
@@ -198,10 +203,10 @@ export default function Views({ teamId }: { teamId?: string }) {
                   </span>
                ) : (
                   <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-primary-foreground text-[10px] font-semibold">
-                     LN
+                     {initials}
                   </span>
                )}
-               <span className="font-medium">{team ? team.name : 'LNDev UI'}</span>
+               <span className="font-medium">{team ? team.name : organizationName}</span>
                <span className="text-muted-foreground text-xs">
                   · {team ? 'Team' : 'Workspace'}
                </span>

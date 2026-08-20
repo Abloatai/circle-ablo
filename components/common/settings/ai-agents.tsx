@@ -10,7 +10,7 @@ import { SettingsCard, SettingsRow, SettingsSection, SettingsShell } from './sha
 const AGENT_FEATURES = [
    {
       icon: <Bot className="size-4" />,
-      title: 'LNDev Agent',
+      title: 'Circle Agent',
       description: 'Configure for your workspace',
    },
    {
@@ -55,7 +55,7 @@ export default function AiAgents() {
          </SettingsSection>
 
          <SettingsSection
-            title="LNDev Agent"
+            title="Circle Agent"
             description="Create issues and answer questions about your workspace"
          >
             <SettingsCard>

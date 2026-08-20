@@ -40,7 +40,7 @@ export default function AccountConnections() {
                <SettingsRow
                   icon={<GoogleCalendarLogo className="size-4" />}
                   title="Google Calendar"
-                  description="Sync your calendar out-of-office status to LNDev UI"
+                  description="Sync your calendar out-of-office status to Circle"
                   trailing={<ConnectedTrailing />}
                />
             </SettingsCard>
@@ -63,7 +63,7 @@ export default function AccountConnections() {
                <SettingsRow icon={<GithubLogo className="size-4" />} title={<>GitHub</>} />
                <SettingsRow
                   title="octo-relay"
-                  description="Review code in LNDev UI and sync attribution of your git-related actions"
+                  description="Review code in Circle and sync attribution of your git-related actions"
                   trailing={<ConnectedTrailing />}
                />
             </SettingsCard>

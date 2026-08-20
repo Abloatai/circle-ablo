@@ -139,7 +139,7 @@ export function CommandPalette() {
    const close = useCallback(() => {
       setOpen(false);
       reset();
-   }, [reset]);
+   }, [reset, openModal]);
 
    // ⌘K / Ctrl+K
    useEffect(() => {
@@ -150,6 +150,19 @@ export function CommandPalette() {
                if (value) reset();
                return !value;
             });
+            return;
+         }
+
+         // `C` for a new issue, the convention every tracker uses. Ignored
+         // while typing, or the letter would open a dialog mid-sentence.
+         if (event.key.toLowerCase() === 'c' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+            const target = event.target as HTMLElement | null;
+            const typing =
+               target?.isContentEditable ||
+               ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '');
+            if (typing || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+            event.preventDefault();
+            openModal();
          }
       };
       window.addEventListener('keydown', onKeyDown);

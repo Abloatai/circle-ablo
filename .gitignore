@@ -49,3 +49,8 @@ next-env.d.ts
 
 # eve local runtime state
 .eve/
+
+# Playwright
+tests/.auth/
+playwright-report/
+test-results/

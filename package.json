@@ -1,6 +1,6 @@
 {
    "name": "circle",
-   "version": "0.3.0",
+   "version": "0.4.0",
    "private": true,
    "packageManager": "pnpm@11.7.0",
    "scripts": {
@@ -16,7 +16,11 @@
       "auth:generate": "better-auth generate --config lib/auth.ts --output db/schema/auth.ts --yes",
       "db:seed": "tsx --env-file=.env.local db/seed.ts && pnpm ablo:reload",
       "db:backfill": "tsx --env-file=.env.local db/backfill-ablo-tenant.ts",
-      "ablo:reload": "ablo connect resnapshot --yes --env-file .env.local"
+      "ablo:reload": "ablo connect resnapshot --yes --env-file .env.local",
+      "test": "playwright test",
+      "test:e2e": "playwright test --project=e2e",
+      "test:unit": "playwright test --project=unit",
+      "test:ui": "playwright test --project=e2e --ui"
    },
    "dependencies": {
       "@abloatai/ablo": "^0.55.0",
@@ -78,6 +82,7 @@
       "@abloatai/cli": "^0.55.0",
       "@abloatai/humans": "^0.55.0",
       "@eslint/eslintrc": "^3",
+      "@playwright/test": "^1.62.1",
       "@tailwindcss/postcss": "^4",
       "@types/node": "^20",
       "@types/pg": "^8.21.0",

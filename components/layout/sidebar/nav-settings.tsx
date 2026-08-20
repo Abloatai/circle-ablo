@@ -1,5 +1,7 @@
 'use client';
 
+import { INTEGRATIONS_ENABLED } from '@/lib/features';
+import { Unavailable } from '@/components/common/unavailable';
 import {
    SidebarGroup,
    SidebarGroupLabel,
@@ -92,6 +94,16 @@ export const settingsNav: SettingsNavGroup[] = [
    },
 ];
 
+/** Settings entries whose page is gated behind a feature flag. */
+const DISABLED_URLS: Record<string, string> = {
+   ...(INTEGRATIONS_ENABLED
+      ? {}
+      : {
+           '/settings/integrations': 'Coming soon',
+           '/settings/connected-accounts': 'Coming soon',
+        }),
+};
+
 export function NavSettings() {
    const { orgId } = useParams<{ orgId: string }>();
    const pathname = usePathname();
@@ -107,12 +119,24 @@ export function NavSettings() {
                      const isActive = pathname === href;
                      return (
                         <SidebarMenuItem key={`${group.label}-${item.name}`}>
-                           <SidebarMenuButton asChild isActive={isActive}>
-                              <Link href={href}>
-                                 <item.icon className="size-4" />
-                                 <span>{item.name}</span>
-                              </Link>
-                           </SidebarMenuButton>
+                           {DISABLED_URLS[item.url] ? (
+                              <Unavailable reason={DISABLED_URLS[item.url]} className="w-full">
+                                 <SidebarMenuButton
+                                    aria-disabled="true"
+                                    className="w-full opacity-50 pointer-events-none"
+                                 >
+                                    <item.icon className="size-4" />
+                                    <span>{item.name}</span>
+                                 </SidebarMenuButton>
+                              </Unavailable>
+                           ) : (
+                              <SidebarMenuButton asChild isActive={isActive}>
+                                 <Link href={href}>
+                                    <item.icon className="size-4" />
+                                    <span>{item.name}</span>
+                                 </Link>
+                              </SidebarMenuButton>
+                           )}
                         </SidebarMenuItem>
                      );
                   })}

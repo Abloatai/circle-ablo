@@ -51,6 +51,8 @@ export const auth = betterAuth({
                   color: { type: 'string', required: false },
                   /** Set while the team is retired; null while it is active. */
                   archivedAt: { type: 'date', required: false, input: false },
+                  /** Free text shown on the team's overview page. */
+                  description: { type: 'string', required: false },
                },
             },
          },

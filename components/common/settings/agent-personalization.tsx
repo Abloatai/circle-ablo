@@ -9,7 +9,7 @@ export default function AgentPersonalization() {
    return (
       <SettingsShell
          title="Agent personalization"
-         description="Your personal settings for the LNDev Agent"
+         description="Your personal settings for the Circle Agent"
       >
          <SettingsSection
             title="Guidance"

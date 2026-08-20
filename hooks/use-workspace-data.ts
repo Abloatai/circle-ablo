@@ -578,6 +578,7 @@ export function useTeams(): Team[] {
             color: team.color ?? '#95a2b3',
             joined: myTeamIds.has(team.id),
             archived: team.archivedAt !== null,
+            description: team.description,
             members: members.filter((member) => member.teamIds.includes(team.id)),
             projects: projects.filter((project) => project.teamId === team.id),
          })),
