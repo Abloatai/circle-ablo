@@ -47,6 +47,8 @@ export const auth = betterAuth({
                   key: { type: 'string', required: true },
                   icon: { type: 'string', required: false },
                   color: { type: 'string', required: false },
+                  /** Set while the team is retired; null while it is active. */
+                  archivedAt: { type: 'date', required: false, input: false },
                },
             },
          },

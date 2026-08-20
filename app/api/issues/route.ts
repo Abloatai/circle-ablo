@@ -36,14 +36,24 @@ export async function POST(request: Request): Promise<Response> {
    if (!teamId || !viewer.teamIds.includes(teamId)) {
       return Response.json({ error: 'Not your team' }, { status: 403 });
    }
+
    if (!body.statusId) return Response.json({ error: 'A status is required' }, { status: 400 });
 
    const [team] = await db
-      .select({ key: t.team.key })
+      .select({ key: t.team.key, name: t.team.name, archivedAt: t.team.archivedAt })
       .from(t.team)
       .where(and(eq(t.team.id, teamId), eq(t.team.organizationId, viewer.organizationId)))
       .limit(1);
    if (!team) return Response.json({ error: 'Unknown team' }, { status: 404 });
+
+   // A retired team keeps everything it has and takes nothing new. Enforced
+   // here rather than only in the UI: hiding a button is not a rule.
+   if (team.archivedAt) {
+      return Response.json(
+         { error: `${team.name} is retired, so it cannot take new issues` },
+         { status: 409 }
+      );
+   }
 
    const number = await nextIssueNumber(teamId, viewer.organizationId);
 

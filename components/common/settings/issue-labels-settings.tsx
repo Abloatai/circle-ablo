@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useIssues } from '@/hooks/use-workspace-data';
 import { useLabels } from '@/hooks/use-workspace-data';
@@ -8,7 +7,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { SelectMenu } from './shared';
 import { CreateLabel } from './create-label';
 import { useLabelActions } from '@/hooks/use-label-actions';
-import { Trash2 } from 'lucide-react';
+import { FolderPlus, Trash2 } from 'lucide-react';
+import { CreateGroup } from './create-group';
+import { GroupSelect } from './group-select';
 
 /** Invented descriptions for a few labels (Linear shows a Description column). */
 const DESCRIPTIONS: Record<string, string> = {
@@ -73,6 +74,9 @@ export default function IssueLabelsSettings() {
    const { setColor, remove } = useLabelActions();
    const issues = useIssues();
    const [query, setQuery] = useState('');
+   const groups = useMemo(() => labels.filter((label) => label.isGroup), [labels]);
+   const childCount = (groupId: string) =>
+      labels.filter((label) => label.parentId === groupId).length;
 
    const rows = useMemo(() => {
       const counts = new Map<string, number>();
@@ -81,16 +85,41 @@ export default function IssueLabelsSettings() {
             counts.set(label.id, (counts.get(label.id) ?? 0) + 1);
          }
       }
-      return labels
-         .map((label) => ({
-            ...label,
-            issues: counts.get(label.id) ?? 0,
-            description: DESCRIPTIONS[label.id],
-            lastApplied: LAST_APPLIED[hashString(label.id) % LAST_APPLIED.length],
-            created: CREATED[hashString(label.name) % CREATED.length],
-         }))
-         .filter((label) => label.name.toLowerCase().includes(query.toLowerCase()))
-         .sort((a, b) => a.name.localeCompare(b.name));
+      const decorate = (label: (typeof labels)[number]) => ({
+         ...label,
+         issues: counts.get(label.id) ?? 0,
+         description: DESCRIPTIONS[label.id],
+         lastApplied: LAST_APPLIED[hashString(label.id) % LAST_APPLIED.length],
+         created: CREATED[hashString(label.name) % CREATED.length],
+      });
+
+      const matches = (label: { name: string }) =>
+         label.name.toLowerCase().includes(query.toLowerCase());
+      const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+
+      // Groups first, each followed by its own labels, then everything
+      // ungrouped. A group whose name does not match the filter still shows
+      // when one of its labels does, or the label would appear orphaned.
+      const groups = labels.filter((label) => label.isGroup).sort(byName);
+      const inGroup = (groupId: string) =>
+         labels.filter((label) => label.parentId === groupId).sort(byName);
+
+      const out: (ReturnType<typeof decorate> & { depth: number })[] = [];
+      for (const group of groups) {
+         const children = inGroup(group.id).filter(matches);
+         if (!matches(group) && children.length === 0) continue;
+         out.push({ ...decorate(group), depth: 0 });
+         for (const child of matches(group) ? inGroup(group.id) : children) {
+            out.push({ ...decorate(child), depth: 1 });
+         }
+      }
+      for (const label of labels
+         .filter((label) => !label.isGroup && !label.parentId)
+         .filter(matches)
+         .sort(byName)) {
+         out.push({ ...decorate(label), depth: 0 });
+      }
+      return out;
       // `labels` and `issues` are live reads: without them here a rename or a
       // new label would not reach this table until something else re-rendered it.
    }, [labels, issues, query]);
@@ -111,9 +140,7 @@ export default function IssueLabelsSettings() {
                   <SelectMenu options={['Workspace', 'All teams']} />
                </div>
                <div className="flex items-center gap-2">
-                  <Button size="xs" variant="secondary">
-                     New group
-                  </Button>
+                  <CreateGroup />
                   <CreateLabel />
                </div>
             </div>
@@ -132,15 +159,30 @@ export default function IssueLabelsSettings() {
                   key={label.id}
                   className="flex items-center px-2 py-2.5 text-sm border-b border-muted-foreground/5 hover:bg-sidebar/50"
                >
-                  <div className="flex-1 min-w-0 flex items-center gap-2.5">
-                     <input
-                        type="color"
-                        aria-label={`Colour of ${label.name}`}
-                        value={label.color}
-                        onChange={(event) => void setColor(label.id, event.target.value)}
-                        className="size-4 rounded-full shrink-0 bg-transparent border-none p-0 cursor-pointer"
-                     />
+                  <div
+                     className="flex-1 min-w-0 flex items-center gap-2.5"
+                     style={{ paddingLeft: label.depth * 22 }}
+                  >
+                     {label.isGroup ? (
+                        <FolderPlus className="size-4 shrink-0 text-muted-foreground" />
+                     ) : (
+                        <input
+                           type="color"
+                           aria-label={`Colour of ${label.name}`}
+                           value={label.color}
+                           onChange={(event) => void setColor(label.id, event.target.value)}
+                           className="size-4 rounded-full shrink-0 bg-transparent border-none p-0 cursor-pointer"
+                        />
+                     )}
                      <LabelName label={label} />
+                     {label.isGroup && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+                           Group
+                        </span>
+                     )}
+                     {!label.isGroup && groups.length > 0 && (
+                        <GroupSelect label={label} groups={groups} />
+                     )}
                   </div>
                   <div className="hidden md:block w-[260px] text-xs text-muted-foreground truncate pr-4">
                      {label.description}
@@ -155,11 +197,15 @@ export default function IssueLabelsSettings() {
                   <button
                      aria-label={`Delete ${label.name}`}
                      title={
-                        label.issues > 0
-                           ? `${label.issues} issues still use this label`
-                           : 'Delete label'
+                        label.isGroup
+                           ? childCount(label.id) > 0
+                              ? `Move its ${childCount(label.id)} labels out first`
+                              : 'Delete group'
+                           : label.issues > 0
+                             ? `${label.issues} issues still use this label`
+                             : 'Delete label'
                      }
-                     disabled={label.issues > 0}
+                     disabled={label.isGroup ? childCount(label.id) > 0 : label.issues > 0}
                      onClick={() => void remove(label.id, label.name)}
                      className="shrink-0 text-muted-foreground hover:text-destructive disabled:opacity-30 disabled:hover:text-muted-foreground"
                   >

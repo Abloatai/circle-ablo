@@ -1,4 +1,4 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
@@ -58,11 +58,35 @@ export function getPool(): Pool {
    return pool;
 }
 
-export const db = drizzle({
-   client: new Proxy({} as Pool, {
-      get: (_target, prop) => Reflect.get(getPool(), prop, getPool()),
-   }),
-   schema,
+let instance: NodePgDatabase<typeof schema> | undefined;
+
+function getDb(): NodePgDatabase<typeof schema> {
+   if (!instance) instance = drizzle({ client: getPool(), schema });
+   return instance;
+}
+
+/**
+ * Lazy, so importing this module does not require a database — drizzle-kit and
+ * Better Auth's generator both read the schema without one.
+ *
+ * The laziness deliberately wraps the **drizzle instance**, not the pool. An
+ * earlier version proxied the `Pool` itself with only a `get` trap, and that
+ * quietly broke it: `pg-pool` prunes a dead connection by assigning
+ * `this._clients = this._clients.filter(...)`, and with no `set` trap the new
+ * array landed on the proxy's throwaway target while every read went back to
+ * the real pool. `_clients` therefore never shrank, `totalCount` stayed pinned
+ * at `max`, the pool believed it was permanently full, and every checkout
+ * queued until `connectionTimeoutMillis` fired — for the life of the process.
+ * The symptom was sign-in returning 500 after exactly 10 seconds while a fresh
+ * script reached the same endpoint in under two.
+ *
+ * Methods are bound to the real instance so `this` is never the proxy.
+ */
+export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
+   get: (_target, prop) => {
+      const value = Reflect.get(getDb(), prop);
+      return typeof value === 'function' ? value.bind(getDb()) : value;
+   },
 });
 
 export type Database = typeof db;

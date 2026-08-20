@@ -104,6 +104,11 @@ export const team = pgTable(
       key: text('key').notNull(),
       icon: text('icon'),
       color: text('color'),
+      /**
+       * Set when a team is retired: it keeps all its history and stays
+       * readable, but nothing new can be created in it. Null means active.
+       */
+      archivedAt: timestamp('archived_at'),
    },
    (table) => [index('team_organizationId_idx').on(table.organizationId)]
 );

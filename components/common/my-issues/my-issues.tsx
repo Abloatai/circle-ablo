@@ -15,6 +15,7 @@ import { useSearchStore } from '@/store/search-store';
 import { useViewStore } from '@/store/view-store';
 import { useMemo } from 'react';
 import { scopeMyIssues, useMyIssuesTab } from './use-my-issues';
+import { useSubscriptions } from '@/hooks/use-subscription-actions';
 
 /**
  * "My issues" body — the exact same machinery as the team issue views
@@ -33,7 +34,21 @@ export default function MyIssues() {
    const isSearching = isSearchOpen && searchQuery.trim() !== '';
    const isViewTypeGrid = viewType === 'grid';
 
-   const scopedIssues = useMemo(() => scopeMyIssues(issues, tab, viewerId), [issues, tab]);
+   const subscriptions = useSubscriptions();
+   const subscribedIssueIds = useMemo(
+      () =>
+         new Set(
+            subscriptions
+               .filter((row) => row.userId === viewerId && row.entityType === 'issue')
+               .map((row) => row.entityId)
+         ),
+      [subscriptions, viewerId]
+   );
+
+   const scopedIssues = useMemo(
+      () => scopeMyIssues(issues, tab, viewerId, subscribedIssueIds),
+      [issues, tab, viewerId, subscribedIssueIds]
+   );
 
    const displayedIssues = useMemo(
       () => applyIssueFilters(scopedIssues, filters),

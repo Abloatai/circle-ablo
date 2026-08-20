@@ -21,13 +21,16 @@ export function useMyIssuesTab() {
 /**
  * Issues shown by each My issues tab.
  *
- * Membership is now a fact on the row — who it is assigned to, who opened it —
- * rather than the hash of an identifier the fixtures used to stand in for one.
+ * Membership is a fact on the row — who it is assigned to, who opened it — or,
+ * for Subscribed, a `subscription` row. That tab used to fall back to "issues I
+ * am involved in", which made it a duplicate of Activity and meant subscribing
+ * to an issue you had no other connection to showed you nothing.
  */
 export function scopeMyIssues(
    issues: HydratedIssue[],
    tab: MyIssuesTab,
-   viewerId: string
+   viewerId: string,
+   subscribedIssueIds: ReadonlySet<string> = new Set()
 ): HydratedIssue[] {
    const isMine = (issue: HydratedIssue) =>
       issue.assignee?.id === viewerId || issue.createdBy === viewerId;
@@ -38,7 +41,7 @@ export function scopeMyIssues(
       case 'created':
          return issues.filter((issue) => issue.createdBy === viewerId);
       case 'subscribed':
-         return issues.filter(isMine);
+         return issues.filter((issue) => subscribedIssueIds.has(issue.id));
       case 'activity':
       default:
          // "Activity" = everything I touch, most recent first.

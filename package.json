@@ -1,6 +1,6 @@
 {
    "name": "circle",
-   "version": "0.1.0",
+   "version": "0.2.0",
    "private": true,
    "packageManager": "pnpm@11.7.0",
    "scripts": {
@@ -10,9 +10,9 @@
       "lint": "next lint",
       "format": "prettier --write .",
       "prepare": "husky",
-      "db:generate": "drizzle-kit generate",
-      "db:migrate": "drizzle-kit migrate",
-      "db:studio": "drizzle-kit studio",
+      "db:generate": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs generate",
+      "db:migrate": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs migrate",
+      "db:studio": "node --env-file=.env.local ./node_modules/drizzle-kit/bin.cjs studio",
       "auth:generate": "better-auth generate --config lib/auth.ts --output db/schema/auth.ts --yes",
       "db:seed": "tsx --env-file=.env.local db/seed.ts && pnpm ablo:reload",
       "db:backfill": "tsx --env-file=.env.local db/backfill-ablo-tenant.ts",

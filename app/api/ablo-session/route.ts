@@ -58,6 +58,8 @@ export async function POST(request: Request): Promise<Response> {
          documentFolder: ['read', 'create', 'update'],
          savedView: ['read', 'create', 'update', 'delete'],
          notification: ['read', 'create', 'update'],
+         favorite: ['read', 'create', 'delete'],
+         subscription: ['read', 'create', 'delete'],
          agentRun: ['read', 'create'],
          agentMessage: ['read', 'create'],
       },

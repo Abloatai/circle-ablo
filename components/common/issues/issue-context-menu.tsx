@@ -4,6 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
    ContextMenuContent,
    ContextMenuGroup,
+   ContextMenuLabel,
    ContextMenuItem,
    ContextMenuSeparator,
    ContextMenuShortcut,
@@ -48,6 +49,8 @@ import { toast } from 'sonner';
 import { DeleteIssueDialog } from './delete-issue-dialog';
 import { RenameIssueDialog } from './rename-issue-dialog';
 import { unavailableItemClass } from '@/components/common/unavailable';
+import { useFavoriteActions, useIsFavorite } from '@/hooks/use-favorite-actions';
+import { useIsSubscribed, useSubscriptionActions } from '@/hooks/use-subscription-actions';
 
 interface IssueContextMenuProps {
    issueId?: string;
@@ -58,8 +61,15 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
    const status = useStatuses();
    const labels = useLabels();
    const projects = useProjects();
-   const [isSubscribed, setIsSubscribed] = useState(false);
-   const [isFavorite, setIsFavorite] = useState(false);
+   // Both of these are rows, not component state. The old `useState(false)`
+   // reset on every right-click and persisted nothing.
+   const isSubscribed = Boolean(useIsSubscribed('issue', issueId));
+   const { toggle: toggleSubscription } = useSubscriptionActions();
+   // Starred state is a row, not component state — so it is already true when
+   // the menu opens on an issue starred in another tab, and it survives a
+   // reload. The old `useState(false)` reset on every right-click.
+   const isFavorite = Boolean(useIsFavorite('issue', issueId));
+   const { toggle: toggleFavorite } = useFavoriteActions();
    const [deleting, setDeleting] = useState(false);
    const [renaming, setRenaming] = useState(false);
 
@@ -116,8 +126,24 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
          );
          toast.success(`Removed label: ${label.name}`);
       } else {
-         void setLabels(issueId, [...current, labelId]);
-         toast.success(`Added label: ${label.name}`);
+         // A group is mutually exclusive: adding one of its labels replaces
+         // whichever sibling was already there, the way setting a status does.
+         const siblings = label.parentId
+            ? new Set(
+                 labels
+                    .filter((other) => other.parentId === label.parentId && other.id !== labelId)
+                    .map((other) => other.id)
+              )
+            : new Set<string>();
+         const replaced = current.find((id) => siblings.has(id));
+         const kept = current.filter((id) => !siblings.has(id));
+         void setLabels(issueId, [...kept, labelId]);
+         const replacedName = replaced
+            ? labels.find((other) => other.id === replaced)?.name
+            : undefined;
+         toast.success(
+            replacedName ? `${label.name} replaced ${replacedName}` : `Added label: ${label.name}`
+         );
       }
    };
 
@@ -158,13 +184,13 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
    };
 
    const handleSubscribe = () => {
-      setIsSubscribed(!isSubscribed);
-      toast.success(isSubscribed ? 'Unsubscribed from issue' : 'Subscribed to issue');
+      if (!issueId) return;
+      void toggleSubscription('issue', issueId, issue?.identifier);
    };
 
    const handleFavorite = () => {
-      setIsFavorite(!isFavorite);
-      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+      if (!issueId) return;
+      void toggleFavorite('issue', issueId, issue?.identifier);
    };
 
    const handleCopy = () => {
@@ -245,16 +271,45 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                   <Tag className="mr-2 size-4" /> Labels
                </ContextMenuSubTrigger>
                <ContextMenuSubContent className="w-48">
-                  {labels.map((label) => (
-                     <ContextMenuItem key={label.id} onClick={() => handleLabelToggle(label.id)}>
-                        <span
-                           className="inline-block size-3 rounded-full"
-                           style={{ backgroundColor: label.color }}
-                           aria-hidden="true"
-                        />
-                        {label.name}
-                     </ContextMenuItem>
-                  ))}
+                  {/* Groups become headings; only real labels are selectable. */}
+                  {labels
+                     .filter((label) => label.isGroup)
+                     .map((group) => {
+                        const children = labels.filter((label) => label.parentId === group.id);
+                        if (children.length === 0) return null;
+                        return (
+                           <ContextMenuGroup key={group.id}>
+                              <ContextMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                 {group.name}
+                              </ContextMenuLabel>
+                              {children.map((label) => (
+                                 <ContextMenuItem
+                                    key={label.id}
+                                    onClick={() => handleLabelToggle(label.id)}
+                                 >
+                                    <span
+                                       className="inline-block size-3 rounded-full"
+                                       style={{ backgroundColor: label.color }}
+                                       aria-hidden="true"
+                                    />
+                                    {label.name}
+                                 </ContextMenuItem>
+                              ))}
+                           </ContextMenuGroup>
+                        );
+                     })}
+                  {labels
+                     .filter((label) => !label.isGroup && !label.parentId)
+                     .map((label) => (
+                        <ContextMenuItem key={label.id} onClick={() => handleLabelToggle(label.id)}>
+                           <span
+                              className="inline-block size-3 rounded-full"
+                              style={{ backgroundColor: label.color }}
+                              aria-hidden="true"
+                           />
+                           {label.name}
+                        </ContextMenuItem>
+                     ))}
                </ContextMenuSubContent>
             </ContextMenuSub>
 

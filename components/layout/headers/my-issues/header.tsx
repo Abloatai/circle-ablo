@@ -12,6 +12,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useIssues } from '@/hooks/use-workspace-data';
 import { useWorkspace } from '@/components/providers/workspace-provider';
+import { useSubscriptions } from '@/hooks/use-subscription-actions';
 import { useRightPanelStore } from '@/store/right-panel-store';
 import { useSearchStore } from '@/store/search-store';
 import { BarChart3, PanelRight, SearchIcon } from 'lucide-react';
@@ -96,7 +97,15 @@ function HeaderOptions() {
    const { viewerId } = useWorkspace();
    const { openPanel, togglePanel } = useRightPanelStore();
 
-   const count = scopeMyIssues(issues, tab, viewerId).length;
+   // Same scoping the body uses, so the tab count cannot disagree with the list.
+   const subscriptions = useSubscriptions();
+   const subscribedIssueIds = new Set(
+      subscriptions
+         .filter((row) => row.userId === viewerId && row.entityType === 'issue')
+         .map((row) => row.entityId)
+   );
+
+   const count = scopeMyIssues(issues, tab, viewerId, subscribedIssueIds).length;
 
    return (
       <div className="w-full flex justify-between items-center border-b py-1.5 px-6 h-10">

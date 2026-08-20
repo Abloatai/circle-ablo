@@ -2,8 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { getCyclesByTeam } from '@/lib/domain/cycles';
-import { useStatuses } from '@/hooks/use-workspace-data';
-import { useTeams } from '@/hooks/use-workspace-data';
 import {
    Bot,
    ChevronRight,
@@ -22,6 +20,17 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { LeaveTeamDialog } from './leave-dialogs';
+import { DeleteTeamDialog, RetireTeamDialog } from './team-danger-dialogs';
+import {
+   useCycles,
+   useIssues,
+   useProjects,
+   useStatuses,
+   useTeamDocuments,
+   useTeams,
+} from '@/hooks/use-workspace-data';
 import { SettingsCard, SettingsRow, SettingsSection } from './shared';
 
 interface TeamSettingsProps {
@@ -33,6 +42,15 @@ export default function TeamSettings({ teamId }: TeamSettingsProps) {
    const teams = useTeams();
    const status = useStatuses();
    const { orgId } = useParams<{ orgId: string }>();
+   const [leaving, setLeaving] = useState(false);
+   const [retiring, setRetiring] = useState(false);
+   const [deleting, setDeleting] = useState(false);
+   // Counts read live from the synced pool, so the confirmation says what is
+   // actually there rather than a number typed into a string.
+   const allIssues = useIssues();
+   const allCycles = useCycles();
+   const allProjects = useProjects();
+   const folders = useTeamDocuments(teamId);
    const team = teams.find((candidate) => candidate.id === teamId);
 
    if (!team) {
@@ -223,33 +241,69 @@ export default function TeamSettings({ teamId }: TeamSettingsProps) {
                         title="Leave team"
                         description="Remove yourself as a member of this team"
                         trailing={
-                           <Button size="xs" variant="ghost">
+                           <Button size="xs" variant="ghost" onClick={() => setLeaving(true)}>
                               Leave team...
                            </Button>
                         }
                      />
                      <SettingsRow
-                        title="Retire team"
-                        description="Prevent creating and updating issues in this team while preserving all historical data"
-                        muted
+                        title={team.archived ? 'Bring team back' : 'Retire team'}
+                        description={
+                           team.archived
+                              ? 'This team is retired. Bring it back to let it take new issues again.'
+                              : 'Stop new issues being created in this team while keeping all its history'
+                        }
                         trailing={
-                           <Button size="xs" variant="ghost">
-                              Retire...
+                           <Button size="xs" variant="ghost" onClick={() => setRetiring(true)}>
+                              {team.archived ? 'Bring back...' : 'Retire...'}
                            </Button>
                         }
                      />
                      <SettingsRow
                         title="Delete team"
-                        description="Permanently delete this team and all its data, with a 30-day restoration window"
-                        muted
+                        description="Permanently delete this team and everything in it. There is no undo."
                         trailing={
-                           <Button size="xs" variant="ghost">
+                           <Button
+                              size="xs"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-500"
+                              onClick={() => setDeleting(true)}
+                           >
                               Delete...
                            </Button>
                         }
                      />
                   </SettingsCard>
                </SettingsSection>
+
+               <LeaveTeamDialog
+                  teamId={team.id}
+                  teamName={team.name}
+                  open={leaving}
+                  onOpenChange={setLeaving}
+               />
+               <RetireTeamDialog
+                  teamId={team.id}
+                  teamName={team.name}
+                  archived={Boolean(team.archived)}
+                  open={retiring}
+                  onOpenChange={setRetiring}
+               />
+               <DeleteTeamDialog
+                  teamId={team.id}
+                  teamName={team.name}
+                  counts={{
+                     issues: allIssues.filter((issue) => issue.teamId === team.id).length,
+                     cycles: allCycles.filter((cycle) => cycle.teamId === team.id).length,
+                     projects: allProjects.filter((project) => project.teamId === team.id).length,
+                     documents: folders.reduce(
+                        (total, folder) => total + folder.documents.length,
+                        0
+                     ),
+                  }}
+                  open={deleting}
+                  onOpenChange={setDeleting}
+               />
             </div>
          </div>
       </div>

@@ -12,6 +12,54 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.2.0]
+
+The five surfaces that were left disabled at 0.1.0, and the bug behind every
+mysterious stall in development.
+
+### Added
+
+- **Favourites.** Star an issue and it appears in a Favorites group in the
+  sidebar. The group resolves each row against the synced pool rather than
+  storing a name, so renaming an issue renames it there, and a favourite whose
+  target is gone stops rendering instead of becoming a dead link. Private —
+  the model is scoped to the person, so nobody sees anyone else's.
+- **Subscriptions**, on issues and on teams, and they do something: a
+  subscriber is notified when someone comments, even with no other connection
+  to the issue. My issues → Subscribed filters on real subscriptions instead
+  of falling back to "issues I am involved in", which had made it a duplicate
+  of Activity.
+- **Leave a team, leave a workspace**, both with a confirmation that says what
+  changes. Leaving a workspace keeps everything you wrote exactly where it is.
+- **Retire a team** — it keeps all its history and stays readable, and only
+  stops taking new issues. Reversible, and enforced server-side rather than by
+  hiding a button.
+- **Delete a team**, which clears eighteen tables in one transaction. It names
+  the real counts and asks for the team's name to be typed.
+- **Label groups.** An issue takes at most one label from a group, the way it
+  has one status — applying a label replaces whichever sibling was there.
+  Groups are headings in the pickers, never applied to issues themselves.
+
+### Fixed
+
+- **The connection pool wedged permanently after a dead client.** Sign-in
+  returned 500 after exactly ten seconds while a fresh script reached the same
+  endpoint in under two, and only a restart cleared it. The pool was wrapped in
+  a `Proxy` with only a `get` trap; `pg-pool` prunes a dead connection by
+  assigning `this._clients = this._clients.filter(...)`, so the new array
+  landed on the proxy's throwaway target and `_clients` never shrank. The pool
+  believed it was permanently full and every checkout queued until the timeout.
+- **`pnpm db:migrate` never loaded `.env.local`**, so the third step of the
+  README failed for anyone setting the project up.
+- **The profile page showed the wrong person** — it read `members[0]` rather
+  than the signed-in user, so everyone saw the same stranger's name and avatar.
+
+### Changed
+
+- The team danger zone no longer promises a "30-day restoration window" for
+  deletion. There is none, so it now says there is no undo and points at
+  retiring instead.
+
 ## [0.1.0]
 
 The first release. Circle was a Linear-inspired front end with no backend, where
@@ -83,5 +131,6 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.1.0

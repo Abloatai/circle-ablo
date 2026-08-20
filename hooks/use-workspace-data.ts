@@ -40,9 +40,27 @@ export function useStatuses(): Status[] {
 export function useLabels(): LabelInterface[] {
    const rows = useAblo((ablo) => ablo.label.local.list({})) ?? [];
    return useMemo(
-      () => rows.map((row) => ({ id: row.id, name: row.name, color: row.color })),
+      () =>
+         rows.map((row) => ({
+            id: row.id,
+            name: row.name,
+            color: row.color,
+            isGroup: row.isGroup ?? false,
+            parentId: row.parentId ?? null,
+         })),
       [rows]
    );
+}
+
+/**
+ * Labels an issue can actually be given — groups excluded.
+ *
+ * A group is a container, not a tag: applying one to an issue would mean
+ * nothing, and it would sit in the picker looking selectable.
+ */
+export function useApplicableLabels(): LabelInterface[] {
+   const labels = useLabels();
+   return useMemo(() => labels.filter((label) => !label.isGroup), [labels]);
 }
 
 export function useProjects(): Project[] {
@@ -559,6 +577,7 @@ export function useTeams(): Team[] {
             icon: team.icon ?? '📋',
             color: team.color ?? '#95a2b3',
             joined: myTeamIds.has(team.id),
+            archived: team.archivedAt !== null,
             members: members.filter((member) => member.teamIds.includes(team.id)),
             projects: projects.filter((project) => project.teamId === team.id),
          })),

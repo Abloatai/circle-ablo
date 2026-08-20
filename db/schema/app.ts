@@ -91,14 +91,33 @@ export const workflowState = pgTable(
    (t) => [index('workflow_state_org_idx').on(t.organizationId, t.teamId)]
 );
 
+/**
+ * An issue label, or a group of them.
+ *
+ * A group is a label row with `is_group` set; the labels inside it point back
+ * with `parent_id`. Modelling a group as a label rather than a separate table
+ * keeps one namespace — the unique index below already stops a group and a
+ * label sharing a name, which would be confusing in every picker.
+ *
+ * The point of a group is mutual exclusivity: an issue takes at most one label
+ * from each group, the way a status or a priority works. A group is never
+ * applied to an issue itself.
+ */
 export const label = pgTable(
    'label',
    {
       ...base,
       name: text('name').notNull(),
       color: text('color').notNull(),
+      /** True for a group. Groups hold labels; they are not applied to issues. */
+      isGroup: boolean('is_group').notNull().default(false),
+      /** The group this label belongs to, if any. */
+      parentId: text('parent_id'),
    },
-   (t) => [uniqueIndex('label_org_name_idx').on(t.organizationId, t.name)]
+   (t) => [
+      uniqueIndex('label_org_name_idx').on(t.organizationId, t.name),
+      index('label_parent_idx').on(t.parentId),
+   ]
 );
 
 /* -------------------------------------------------------------------------- */
@@ -415,6 +434,64 @@ export const notification = pgTable(
       snoozedUntil: timestamp('snoozed_until', { withTimezone: true }),
    },
    (t) => [index('notification_user_idx').on(t.userId, t.readAt)]
+);
+
+/* -------------------------------------------------------------------------- */
+/*                              Per-person marks                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A thing someone starred.
+ *
+ * Deliberately generic — `entity_type` plus `entity_id` rather than a nullable
+ * column per kind — because the sidebar's Favorites section mixes issues,
+ * projects, cycles, views and documents in one list, and a table per kind would
+ * make that list a union of five queries.
+ *
+ * There is no foreign key for the same reason. What it points at is checked by
+ * resolving the id against the synced pool; a favourite whose target is gone
+ * simply does not render.
+ */
+export const favorite = pgTable(
+   'favorite',
+   {
+      ...base,
+      /** Whose favourite. Only this person ever syncs the row. */
+      userId: text('user_id').notNull(),
+      /** `issue` | `project` | `cycle` | `document` | `view` | `team` */
+      entityType: text('entity_type').notNull(),
+      entityId: text('entity_id').notNull(),
+   },
+   (t) => [
+      // Starring twice is the same fact, and the toggle relies on there being
+      // at most one row to delete.
+      uniqueIndex('favorite_user_entity_idx').on(t.userId, t.entityType, t.entityId),
+      index('favorite_user_idx').on(t.userId),
+   ]
+);
+
+/**
+ * Someone watching a thing, so that changes to it reach their inbox.
+ *
+ * Same shape as `favorite` and a deliberately different scope. A favourite is
+ * private; a subscription is not, because the person writing a comment has to
+ * know who else is watching in order to notify them, and that write happens in
+ * their browser. Trackers show subscribers on the issue for the same reason.
+ */
+export const subscription = pgTable(
+   'subscription',
+   {
+      ...base,
+      /** Who is watching. */
+      userId: text('user_id').notNull(),
+      /** `issue` | `team` | `project` */
+      entityType: text('entity_type').notNull(),
+      entityId: text('entity_id').notNull(),
+   },
+   (t) => [
+      uniqueIndex('subscription_user_entity_idx').on(t.userId, t.entityType, t.entityId),
+      index('subscription_entity_idx').on(t.entityType, t.entityId),
+   ]
 );
 
 /* -------------------------------------------------------------------------- */

@@ -34,6 +34,9 @@ import {
    SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { useTeams } from '@/hooks/use-workspace-data';
+import { useSubscriptions, useSubscriptionActions } from '@/hooks/use-subscription-actions';
+import { LeaveTeamDialog } from '@/components/common/settings/leave-dialogs';
+import { useState } from 'react';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { toast } from 'sonner';
 import { RiDonutChartFill } from '@remixicon/react';
@@ -60,7 +63,16 @@ export function NavTeams() {
    const teams = useTeams();
    // The workspace slug is the first URL segment; hardcoding it sent every one
    // of these links to a workspace that only exists in the seed.
-   const { organizationSlug } = useWorkspace();
+   const { organizationSlug, viewerId } = useWorkspace();
+   const subscriptions = useSubscriptions();
+   const { toggle: toggleSubscription } = useSubscriptionActions();
+   const subscribedTeamIds = new Set(
+      subscriptions
+         .filter((row) => row.userId === viewerId && row.entityType === 'team')
+         .map((row) => row.entityId)
+   );
+   // Which team the confirmation is for; null when the dialog is closed.
+   const [leaving, setLeaving] = useState<{ id: string; name: string } | null>(null);
    const joinedTeams = teams.filter((t) => t.joined);
    return (
       <SidebarGroup>
@@ -80,6 +92,14 @@ export function NavTeams() {
                               <div className="text-sm">{item.icon}</div>
                            </div>
                            <span className="text-sm">{item.name}</span>
+                           {item.archived && (
+                              <span
+                                 className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
+                                 title="Retired: readable, but it takes no new issues"
+                              >
+                                 Retired
+                              </span>
+                           )}
                            <span className="w-3 shrink-0">
                               <ChevronRight className="w-full transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                            </span>
@@ -114,12 +134,22 @@ export function NavTeams() {
                                     <span>Open archive</span>
                                  </DropdownMenuItem>
                                  <DropdownMenuSeparator />
-                                 <DropdownMenuItem>
+                                 <DropdownMenuItem
+                                    onClick={() =>
+                                       void toggleSubscription('team', item.id, item.name)
+                                    }
+                                 >
                                     <Bell className="size-4" />
-                                    <span>Subscribe</span>
+                                    <span>
+                                       {subscribedTeamIds.has(item.id)
+                                          ? 'Unsubscribe'
+                                          : 'Subscribe'}
+                                    </span>
                                  </DropdownMenuItem>
                                  <DropdownMenuSeparator />
-                                 <DropdownMenuItem>
+                                 <DropdownMenuItem
+                                    onClick={() => setLeaving({ id: item.id, name: item.name })}
+                                 >
                                     <span>Leave team...</span>
                                  </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -194,6 +224,14 @@ export function NavTeams() {
                </Collapsible>
             ))}
          </SidebarMenu>
+         {leaving && (
+            <LeaveTeamDialog
+               teamId={leaving.id}
+               teamName={leaving.name}
+               open
+               onOpenChange={(next) => !next && setLeaving(null)}
+            />
+         )}
       </SidebarGroup>
    );
 }

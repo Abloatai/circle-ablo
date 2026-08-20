@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 
+import { NavFavorites } from '@/components/layout/sidebar/nav-favorites';
 import { NavInbox } from '@/components/layout/sidebar/nav-inbox';
 import { NavTeams } from '@/components/layout/sidebar/nav-teams';
 import { NavWorkspace } from '@/components/layout/sidebar/nav-workspace';
@@ -27,6 +28,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             ) : (
                <>
                   <NavInbox />
+                  <NavFavorites />
                   <NavWorkspace />
                   <NavTeams />
                </>

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useAblo } from '@/lib/ablo';
 import { notify } from '@/lib/data/notify';
+import { useSubscriberIds } from '@/hooks/use-subscription-actions';
 
 /**
  * Writes a comment on the issue.
@@ -27,6 +28,11 @@ export function CommentComposer({
 }) {
    const ablo = useAblo();
    const { membersById, viewerId, organizationId } = useWorkspace();
+   // Subscribing is what turns "I want to hear about this" into a notification.
+   // The model is org-scoped precisely so this browser can see who else is
+   // watching; `notify` de-duplicates and drops the actor.
+   const subscribers = useSubscriberIds('issue', issueId);
+   const teamSubscribers = useSubscriberIds('team', teamId);
    const [body, setBody] = useState('');
    const [pending, setPending] = useState(false);
    const viewer = membersById.get(viewerId);
@@ -54,7 +60,7 @@ export function CommentComposer({
             actorId: viewerId,
             issueId,
             type: 'comment',
-            recipients: participants,
+            recipients: [...participants, ...subscribers, ...teamSubscribers],
          });
       } catch (error) {
          toast.error('Could not post the comment', {

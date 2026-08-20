@@ -2,6 +2,10 @@ export interface LabelInterface {
    id: string;
    name: string;
    color: string;
+   /** True for a group. Groups hold labels and are never applied to an issue. */
+   isGroup?: boolean;
+   /** The group this label belongs to, if any. */
+   parentId?: string | null;
 }
 
 export const labels: LabelInterface[] = [

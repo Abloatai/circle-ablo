@@ -70,6 +70,8 @@ export interface TeamSummary {
    name: string;
    icon: string | null;
    color: string | null;
+   /** Set while the team is retired: readable, but nothing new can be made. */
+   archivedAt: Date | null;
 }
 
 export async function getTeams(organizationId: string): Promise<TeamSummary[]> {
@@ -80,6 +82,7 @@ export async function getTeams(organizationId: string): Promise<TeamSummary[]> {
          name: t.team.name,
          icon: t.team.icon,
          color: t.team.color,
+         archivedAt: t.team.archivedAt,
       })
       .from(t.team)
       .where(eq(t.team.organizationId, organizationId));

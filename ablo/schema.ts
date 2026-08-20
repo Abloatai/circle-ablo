@@ -115,6 +115,9 @@ export const schema = defineSchema(
             workspaceId: field.string().from('organization_id'),
             name: field.string(),
             color: field.string(),
+            /** A group holds labels and is never applied to an issue itself. */
+            isGroup: field.boolean().from('is_group').optional(),
+            parentId: field.string().from('parent_id').indexed().optional(),
          },
          orgScoped('label')
       ),
@@ -381,6 +384,44 @@ export const schema = defineSchema(
             policy: tenancy,
             groups: { roles: [entityRole({ kind: 'user', source: 'userId' })] },
          }
+      ),
+
+      /* --------------------------- per-person marks -------------------------- */
+
+      /**
+       * Starred things. Scoped to the person, like a notification — nobody
+       * else's favourites reach your client, so the sidebar's Favorites list is
+       * simply everything this model holds.
+       */
+      favorite: model(
+         {
+            workspaceId: field.string().from('organization_id'),
+            userId: field.string().indexed(),
+            entityType: field.enum(['issue', 'project', 'cycle', 'document', 'view', 'team']),
+            entityId: field.string().indexed(),
+         },
+         {
+            tableName: 'favorite',
+            policy: tenancy,
+            groups: { roles: [entityRole({ kind: 'user', source: 'userId' })] },
+         }
+      ),
+
+      /**
+       * Who is watching what.
+       *
+       * Org-scoped, unlike `favorite`: posting a comment has to notify the
+       * other subscribers, and that write happens in the commenter's browser,
+       * so their client must be able to see subscriptions that are not theirs.
+       */
+      subscription: model(
+         {
+            workspaceId: field.string().from('organization_id'),
+            userId: field.string().indexed(),
+            entityType: field.enum(['issue', 'team', 'project']),
+            entityId: field.string().indexed(),
+         },
+         orgScoped('subscription')
       ),
 
       /* ------------------------------- agents ------------------------------- */

@@ -5,12 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { Pencil } from 'lucide-react';
+import { useState } from 'react';
 import { SettingsCard, SettingsRow, SettingsSection, SettingsShell } from './shared';
+import { LeaveWorkspaceDialog } from './leave-dialogs';
 
 /** Personal "Profile" settings. */
 export default function Profile() {
-   const { members: users } = useWorkspace();
-   const me = users[0];
+   // This page showed `members[0]` — the first person in the workspace, not the
+   // signed-in one — so everyone saw the same stranger's name and avatar here.
+   const { membersById, viewerId, organizationName } = useWorkspace();
+   const me = membersById.get(viewerId);
+   const [leaving, setLeaving] = useState(false);
+
+   if (!me) return null;
 
    return (
       <SettingsShell title="Profile">
@@ -38,7 +45,7 @@ export default function Profile() {
                />
                <SettingsRow
                   title="Full name"
-                  trailing={<Input defaultValue="LN" className="h-8 w-44" />}
+                  trailing={<Input key={me.id} defaultValue={me.name} className="h-8 w-44" />}
                />
                <SettingsRow
                   title="Title"
@@ -48,7 +55,13 @@ export default function Profile() {
                <SettingsRow
                   title="Username"
                   description="One word, like a nickname or first name"
-                  trailing={<Input defaultValue="ln" className="h-8 w-44" />}
+                  trailing={
+                     <Input
+                        key={me.id}
+                        defaultValue={me.email.split('@')[0]}
+                        className="h-8 w-44"
+                     />
+                  }
                />
             </SettingsCard>
          </SettingsSection>
@@ -57,14 +70,25 @@ export default function Profile() {
             <SettingsCard>
                <SettingsRow
                   title="Remove yourself from workspace"
+                  description={`You will lose access to everything in ${organizationName}`}
                   trailing={
-                     <Button size="xs" variant="ghost" className="text-red-500 hover:text-red-500">
+                     <Button
+                        size="xs"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-500"
+                        onClick={() => setLeaving(true)}
+                     >
                         Leave workspace
                      </Button>
                   }
                />
             </SettingsCard>
          </SettingsSection>
+         <LeaveWorkspaceDialog
+            workspaceName={organizationName}
+            open={leaving}
+            onOpenChange={setLeaving}
+         />
       </SettingsShell>
    );
 }

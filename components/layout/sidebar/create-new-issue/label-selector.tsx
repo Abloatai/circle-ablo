@@ -28,6 +28,9 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
    const [open, setOpen] = useState<boolean>(false);
 
    const issues = useIssues();
+   // Groups hold labels; they are not labels themselves, so they never appear
+   // as something to pick.
+   const pickable = labels.filter((label) => !label.isGroup);
    const filterByLabel = (labelId: string) =>
       issues.filter((issue) => issue.labels.some((label) => label.id === labelId));
 
@@ -38,7 +41,10 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
       if (isSelected) {
          newLabels = selectedLabels.filter((l) => l.id !== label.id);
       } else {
-         newLabels = [...selectedLabels, label];
+         // One label per group, like a status — picking a sibling replaces it.
+         newLabels = label.parentId
+            ? [...selectedLabels.filter((l) => l.parentId !== label.parentId), label]
+            : [...selectedLabels, label];
       }
 
       onChange(newLabels);
@@ -82,7 +88,7 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
                   <CommandList>
                      <CommandEmpty>No labels found.</CommandEmpty>
                      <CommandGroup>
-                        {labels.map((label) => {
+                        {pickable.map((label) => {
                            const isSelected = selectedLabels.some((l) => l.id === label.id);
                            return (
                               <CommandItem
