@@ -23,15 +23,24 @@ test('a profile field saves and survives a reload', async ({ alice, who }) => {
       const title = alice.getByLabel('Title');
       await title.fill(marker);
       await title.blur();
-      await alice.waitForTimeout(5000);
 
-      expect(
-         (await one<{ title: string }>(`select title from "user" where id = $1`, me.id))?.title
-      ).toBe(marker);
+      // Poll rather than sleep. A fixed wait is a guess about how long a write
+      // takes, and this one flaked at the end of a full run — the wait that is
+      // generous when the suite starts is not when a 0.25 CU database has been
+      // worked for six minutes.
+      await expect
+         .poll(
+            async () =>
+               (await one<{ title: string }>(`select title from "user" where id = $1`, me.id))
+                  ?.title,
+            { timeout: 25_000, message: 'the title never reached Postgres' }
+         )
+         .toBe(marker);
 
       await alice.reload();
-      await alice.waitForTimeout(7000);
-      expect(await alice.getByLabel('Title').inputValue()).toBe(marker);
+      await expect
+         .poll(() => alice.getByLabel('Title').inputValue(), { timeout: 25_000 })
+         .toBe(marker);
    } finally {
       await query(
          `update "user" set name = $1, title = $2 where id = $3`,

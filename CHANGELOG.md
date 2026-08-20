@@ -12,6 +12,49 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.1]
+
+Ablo calls itself "claim, change, confirm". This codebase did the change part
+and had a single `claim()` call in it, so the coordination Ablo exists to
+provide went mostly unused. This release uses it where it belongs and fixes
+what that audit turned up.
+
+### Fixed
+
+- **A retried agent tool call wrote twice.** eve retries when a connection
+  drops, and four writes created a row with a fresh id each time — so the
+  retry was a second comment, a second notification, a duplicate "changed
+  status to X" in the activity feed, or a duplicate reply in the agent chat.
+  All four carry an idempotency key now, derived from the run and the content,
+  so one run posting two genuinely different updates still gets two.
+- **A finished agent run kept advertising the step it stopped on.** It cleared
+  `currentStep` with `undefined`, which is dropped from the payload rather than
+  written. Runs already affected were cleared too — fixing a write does not
+  repair the rows it already made.
+
+### Changed
+
+- **The title and description editors claim the field while you are in them.**
+  These are the two places with a gap between reading a value and writing it
+  back: the text is read into a draft, the person types for a while, and the
+  write lands on blur. An agent rewriting the same field in between used to be
+  overwritten by that blur — `EditableTitle` documented it, "their version wins
+  unless this tab has unsaved edits". The claim is released on blur, on cancel
+  and on unmount, and fails fast rather than queueing, so a text box never
+  freezes behind whoever is holding it.
+
+   Writes made from a picker deliberately take no claim. Their value is decided
+   when the call is made, and Ablo merges at field level, so a person setting a
+   status and an agent setting a priority already both land.
+
+- **The agent's status change claims one field rather than the row**, so
+  someone retitling an issue and an agent moving its status no longer wait for
+  each other.
+- **The agent's status change carries its read as a premise.** It reads the
+  workflow states through Ablo's `context()`, so a status renamed or removed
+  between the model choosing one and the write landing rejects the write rather
+  than pointing at something that moved.
+
 ## [0.5.0]
 
 ### Added
@@ -216,7 +259,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.3.0

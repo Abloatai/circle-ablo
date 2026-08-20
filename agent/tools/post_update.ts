@@ -1,6 +1,6 @@
 import { defineTool } from 'eve/tools';
 import { z } from 'zod';
-import { loadRun, reportStep, textBlocks } from '../lib/circle';
+import { loadRun, reportStep, textBlocks, idempotencyKey } from '../lib/circle';
 
 export default defineTool({
    description:
@@ -18,6 +18,7 @@ export default defineTool({
       if (!context.issueId) return { error: 'This run has no issue attached.' };
 
       await context.ablo.comment.create({
+         idempotencyKey: idempotencyKey(runId, 'comment', body),
          data: {
             id: crypto.randomUUID(),
             workspaceId: context.organizationId,
@@ -33,6 +34,7 @@ export default defineTool({
       // if a colleague had commented.
       await context.ablo.notification
          .create({
+            idempotencyKey: idempotencyKey(runId, 'notify', body),
             data: {
                workspaceId: context.organizationId,
                userId: context.requestedById,

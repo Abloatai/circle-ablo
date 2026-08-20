@@ -158,3 +158,21 @@ export async function reportStep(context: RunContext, currentStep: string) {
       data: { status: 'running', currentStep },
    });
 }
+
+/**
+ * A stable key for a write an agent may retry.
+ *
+ * eve retries a tool call when a connection drops, and the write underneath is
+ * usually a `create` with a fresh `crypto.randomUUID()` — so the retry lands a
+ * second comment rather than the same one. Ablo dedupes a commit carrying an
+ * idempotency key it has already applied, which turns "retried" back into
+ * "happened once".
+ *
+ * Keyed on the run and the content, so one run posting two different updates
+ * still gets two.
+ */
+export function idempotencyKey(runId: string, kind: string, content: string): string {
+   let hash = 0;
+   for (let i = 0; i < content.length; i++) hash = (hash * 31 + content.charCodeAt(i)) >>> 0;
+   return `${runId}:${kind}:${hash.toString(36)}`;
+}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ContentBlock } from '@/lib/domain/issue-details';
 import { blocksToMarkdown, markdownToBlocks } from '@/lib/data/content-blocks';
 import { useIssueActions } from '@/hooks/use-issue-actions';
+import { useFieldClaim } from '@/hooks/use-field-claim';
 import { ContentBlocks } from './content-blocks';
 import { cn } from '@/lib/utils';
 
@@ -16,11 +17,13 @@ import { cn } from '@/lib/utils';
  */
 export function EditableTitle({ issueId, title }: { issueId: string; title: string }) {
    const { setTitle } = useIssueActions();
+   const claim = useFieldClaim('issue', issueId, 'title');
    const [draft, setDraft] = useState(title);
    const ref = useRef<HTMLTextAreaElement>(null);
 
-   // Someone else may rename it while this is open; their version wins unless
-   // this tab has unsaved edits.
+   // Someone else's rename still lands here while this is idle. What changed is
+   // the other direction: with the field claimed from focus, their write waits
+   // rather than landing under a draft that is about to be saved.
    useEffect(() => setDraft(title), [title]);
 
    // Grow to fit rather than scrolling: a title is short but often wraps.
@@ -31,13 +34,17 @@ export function EditableTitle({ issueId, title }: { issueId: string; title: stri
       node.style.height = `${node.scrollHeight}px`;
    }, [draft]);
 
-   function commit() {
+   async function commit() {
       const next = draft.trim();
       if (!next || next === title) {
          setDraft(title);
+         await claim.drop();
          return;
       }
-      void setTitle(issueId, next);
+      // The write carries the claim taken on focus, so it is rejected rather
+      // than pasting this draft over whatever arrived while it was open.
+      await setTitle(issueId, next, claim.current());
+      await claim.drop();
    }
 
    return (
@@ -47,7 +54,9 @@ export function EditableTitle({ issueId, title }: { issueId: string; title: stri
          value={draft}
          aria-label="Issue title"
          onChange={(event) => setDraft(event.target.value)}
-         onBlur={commit}
+         onFocus={() => void claim.take('editing the title')}
+         onBlur={() => void commit()}
+         title={claim.blocked ?? undefined}
          onKeyDown={(event) => {
             if (event.key === 'Enter') {
                event.preventDefault();
@@ -82,6 +91,7 @@ export function EditableDescription({
    blocks: ContentBlock[];
 }) {
    const { setDescription } = useIssueActions();
+   const claim = useFieldClaim('issue', issueId, 'description');
    const [editing, setEditing] = useState(false);
    const [draft, setDraft] = useState('');
    const [saving, setSaving] = useState(false);
@@ -89,12 +99,22 @@ export function EditableDescription({
    function open() {
       setDraft(blocksToMarkdown(blocks));
       setEditing(true);
+      // Held for the whole editing session, not just the write. A description
+      // is the field an agent is most likely to rewrite, and the one a person
+      // spends longest in.
+      void claim.take('rewriting the description');
    }
 
    async function save() {
       setSaving(true);
-      await setDescription(issueId, JSON.stringify(markdownToBlocks(draft)));
+      await setDescription(issueId, JSON.stringify(markdownToBlocks(draft)), claim.current());
+      await claim.drop();
       setSaving(false);
+      setEditing(false);
+   }
+
+   async function cancel() {
+      await claim.drop();
       setEditing(false);
    }
 
@@ -129,7 +149,7 @@ export function EditableDescription({
             aria-label="Issue description"
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
-               if (event.key === 'Escape') setEditing(false);
+               if (event.key === 'Escape') void cancel();
                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) void save();
             }}
             className="w-full min-h-64 rounded-md border bg-background p-3 font-mono text-sm leading-relaxed outline-none focus:ring-1 focus:ring-ring"
@@ -142,10 +162,7 @@ export function EditableDescription({
             >
                {saving ? 'Saving…' : 'Save'}
             </button>
-            <button
-               onClick={() => setEditing(false)}
-               className="rounded-md border px-3 py-1.5 text-xs"
-            >
+            <button onClick={() => void cancel()} className="rounded-md border px-3 py-1.5 text-xs">
                Cancel
             </button>
             <span className="text-xs text-muted-foreground">

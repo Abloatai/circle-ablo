@@ -13,6 +13,20 @@ import { levelFromPriority } from '@/lib/data/hydrate';
  * confirmed it, and everyone else watching the team sees it arrive. A rejected
  * write rolls the local state back, so a failure has to be surfaced.
  *
+ * **These writes deliberately do not take a claim.** Ablo's claims are for
+ * holding a row across a gap — read it, reason about it, write it back — which
+ * is the agent's shape, not this one. Here the patch is already decided when the
+ * call is made, and Ablo merges at field level, so two participants editing
+ * different fields of one issue both survive without any claim at all.
+ *
+ * Claiming per write was tried and reverted: several of these are fired without
+ * being awaited (`void setStatus(...)`), so two quick clicks overlap, and the
+ * second write arrives carrying a fencing token the first has already
+ * superseded. Ablo rejects it — `claim_lost` — and the person sees "Could not
+ * update the status" for two edits that used to both land. Measured, not
+ * assumed: sequential claimed writes pass, overlapping ones from one client do
+ * not.
+ *
  * **Clearing a field means sending `null`, never `undefined`.** An `undefined`
  * is dropped from the payload rather than written, so it reads as "leave this
  * alone" and the old value survives — silently, with no error. Unassigning,
@@ -23,11 +37,25 @@ export function useIssueActions() {
    const ablo = useAblo();
 
    const update = useCallback(
-      async (issueId: string, data: Record<string, unknown>, what: string) => {
+      async (
+         issueId: string,
+         data: Record<string, unknown>,
+         what: string,
+         /**
+          * The claim held for the edit this write ends, when there was one.
+          * Only the in-place editors take a claim — see `useFieldClaim` — so
+          * this is undefined for a write decided by a picker.
+          */
+         claim?: unknown
+      ) => {
          // Null only before the provider finishes its first bootstrap.
          if (!ablo) return;
          try {
-            await ablo.issue.update({ id: issueId, data });
+            await ablo.issue.update({
+               id: issueId,
+               data,
+               ...(claim ? { claim: claim as never } : {}),
+            });
          } catch (error) {
             // The optimistic change has already been rolled back at this point.
             toast.error(`Could not update ${what}`, {
@@ -51,11 +79,12 @@ export function useIssueActions() {
 
          setRank: (issueId: string, rank: string) => update(issueId, { rank }, 'the order'),
 
-         setTitle: (issueId: string, title: string) => update(issueId, { title }, 'the title'),
+         setTitle: (issueId: string, title: string, claim?: unknown) =>
+            update(issueId, { title }, 'the title', claim),
 
          /** Takes block JSON — see lib/data/content-blocks.ts for the editor's side. */
-         setDescription: (issueId: string, description: string) =>
-            update(issueId, { description }, 'the description'),
+         setDescription: (issueId: string, description: string, claim?: unknown) =>
+            update(issueId, { description }, 'the description', claim),
 
          setDueDate: (issueId: string, dueDate: string | null) =>
             update(issueId, { dueDate: dueDate ?? null }, 'the due date'),

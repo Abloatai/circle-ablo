@@ -1,6 +1,6 @@
 import { defineTool } from 'eve/tools';
 import { z } from 'zod';
-import { loadRun } from '../lib/circle';
+import { loadRun, idempotencyKey } from '../lib/circle';
 
 export default defineTool({
    description:
@@ -16,6 +16,8 @@ export default defineTool({
       // started the turn is still waiting. A long turn used to mean the reply
       // existed only in an HTTP response nobody was holding any more.
       await context.ablo.agentMessage.create({
+         // Without this a retried reply is a second reply in the chat.
+         idempotencyKey: idempotencyKey(runId, 'reply', body),
          data: {
             workspaceId: context.organizationId,
             teamId: context.teamId,
