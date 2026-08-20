@@ -1,0 +1,50 @@
+name: CI
+
+on:
+   push:
+      branches: [main]
+   pull_request:
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+   group: ci-${{ github.ref }}
+   cancel-in-progress: true
+
+jobs:
+   check:
+      runs-on: ubuntu-latest
+      steps:
+         - uses: actions/checkout@v4
+
+         - uses: pnpm/action-setup@v4
+
+         - uses: actions/setup-node@v4
+           with:
+              node-version: 24
+              cache: pnpm
+
+         # `--frozen-lockfile` is the point of running this in CI: it fails if
+         # the lockfile and package.json have drifted, rather than quietly
+         # resolving something different from what anyone tested.
+         - run: pnpm install --frozen-lockfile
+
+         - name: Typecheck
+           run: npx tsc --noEmit
+
+         - name: Lint
+           run: npx next lint
+
+         # The build is the closest thing to a test suite here, and it has
+         # caught real breakage: a Server Component importing the server-only
+         # Ablo client is a build error, not a lint one.
+         - name: Build
+           run: npx next build
+           env:
+              # The build does not connect to anything, but the modules it
+              # imports read these at load time. Values are deliberately not
+              # real — a build that needs live credentials is a build nobody
+              # can run from a fork.
+              DATABASE_URL: postgres://user:pass@localhost:5432/db
+              DATABASE_URL_POOLED: postgres://user:pass@localhost:5432/db
+              BETTER_AUTH_SECRET: ci-not-a-real-secret
+              BETTER_AUTH_URL: http://localhost:3000

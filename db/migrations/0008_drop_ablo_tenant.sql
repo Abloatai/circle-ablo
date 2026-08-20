@@ -1,0 +1,19 @@
+ALTER TABLE "agent_message" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "agent_run" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "comment" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "cycle" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "document" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "document_folder" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "initiative" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "issue" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "issue_activity" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "issue_link" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "label" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "notification" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "project" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "project_label" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "project_milestone" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "project_resource" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "project_update" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "saved_view" DROP COLUMN "ablo_tenant_id";--> statement-breakpoint
+ALTER TABLE "workflow_state" DROP COLUMN "ablo_tenant_id";

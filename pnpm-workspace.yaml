@@ -1,0 +1,23 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - "@ai-sdk/*"
+  - "@rolldown/*"
+  - "@vercel/*"
+  - "@workflow/*"
+  - ai
+  - experimental-ai-sdk-code-mode
+  - eve
+  - nitro
+  - rolldown
+  - workflow
+  - '@abloatai/ablo@0.54.0'
+  - '@abloatai/humans@0.54.0'
+  - '@abloatai/transaction@0.54.0'
+  - '@abloatai/cli@0.54.0'
+  - '@abloatai/ablo@0.55.0'
+  - '@abloatai/humans@0.55.0'
+  - '@abloatai/transaction@0.55.0'
+  - '@abloatai/cli@0.55.0'

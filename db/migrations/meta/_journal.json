@@ -1,0 +1,97 @@
+{
+   "version": "7",
+   "dialect": "postgresql",
+   "entries": [
+      {
+         "idx": 0,
+         "version": "7",
+         "when": 1787046021054,
+         "tag": "0000_init",
+         "breakpoints": true
+      },
+      {
+         "idx": 1,
+         "version": "7",
+         "when": 1787046251232,
+         "tag": "0001_join_row_ids",
+         "breakpoints": true
+      },
+      {
+         "idx": 2,
+         "version": "7",
+         "when": 1787049293997,
+         "tag": "0002_child_team_anchor",
+         "breakpoints": true
+      },
+      {
+         "idx": 3,
+         "version": "7",
+         "when": 1787049861428,
+         "tag": "0003_issue_label_ids",
+         "breakpoints": true
+      },
+      {
+         "idx": 4,
+         "version": "7",
+         "when": 1787062594011,
+         "tag": "0004_drop_issue_label",
+         "breakpoints": true
+      },
+      {
+         "idx": 5,
+         "version": "7",
+         "when": 1787064780918,
+         "tag": "0005_ablo_tenant_column",
+         "breakpoints": true
+      },
+      {
+         "idx": 6,
+         "version": "7",
+         "when": 1787065095522,
+         "tag": "0006_issue_counter",
+         "breakpoints": true
+      },
+      {
+         "idx": 7,
+         "version": "7",
+         "when": 1787066900697,
+         "tag": "0007_issue_links",
+         "breakpoints": true
+      },
+      {
+         "idx": 8,
+         "version": "7",
+         "when": 1787068119367,
+         "tag": "0008_drop_ablo_tenant",
+         "breakpoints": true
+      },
+      {
+         "idx": 9,
+         "version": "7",
+         "when": 1787081751330,
+         "tag": "0009_restore_ablo_tenant",
+         "breakpoints": true
+      },
+      {
+         "idx": 10,
+         "version": "7",
+         "when": 1787134762541,
+         "tag": "0010_open_stellaris",
+         "breakpoints": true
+      },
+      {
+         "idx": 11,
+         "version": "7",
+         "when": 1787144989255,
+         "tag": "0011_zippy_wilson_fisk",
+         "breakpoints": true
+      },
+      {
+         "idx": 12,
+         "version": "7",
+         "when": 1787146686409,
+         "tag": "0012_hard_alex_wilder",
+         "breakpoints": true
+      }
+   ]
+}

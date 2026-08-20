@@ -1,0 +1,1 @@
+ALTER TABLE "issue" ADD COLUMN "label_ids" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -1,0 +1,52 @@
+# Circle
+
+> An issue tracker where people and agents write to the same data in real time.
+> Built on Ablo (write path + sync stream) over Neon Postgres, with Drizzle for
+> migrations, Better Auth for identity, eve for the agent runtime, and Next.js 15
+> / React 19 / Tailwind v4 / shadcn/ui for the interface. Not a front-end
+> template: every list reads live and every mutation is a synchronised write.
+
+Key facts for coding agents:
+
+- **The one rule: any change to workspace data is an Ablo write.** Never a
+  Zustand action, never a direct Postgres write from a route. A write that skips
+  Ablo looks identical to the person who made it and reaches nobody else. The
+  deliberate exceptions are identity (Better Auth via Drizzle), `db/seed.ts`,
+  and the issue-number counter in `app/api/issues`.
+- **Verify in two browsers, not with a reload.** The data is usually in the
+  database either way; what breaks is the live read. Four surfaces shipped
+  writing to memory before this was the rule.
+- Reads: `hooks/use-workspace-data.ts` exposes synchronous live reads off the
+  synced local pool (`useIssues`, `useProjects`, `useSavedViews`,
+  `useTeamDocuments`, `useAgentChats`, …). They stay reactive in render.
+- Writes: one hook per model — `use-issue-actions`, `use-initiative-actions`,
+  `use-document-actions`, `use-view-actions`, `use-comment-actions`,
+  `use-workflow-state-actions`, `use-project-detail-actions`,
+  `use-issue-link-actions`, `use-cycle-actions`, `use-label-actions`.
+- `ablo/schema.ts` is the contract: models, which sync group each row fans out
+  on (`orgScoped` / `teamScoped`), and how a signed-in person maps to groups.
+  `app/api/ablo-session/route.ts` mints the browser's credential and is the only
+  place capabilities are granted — a capability's operations are fixed at mint,
+  so no UI can work around a missing one.
+- Drizzle owns all DDL (`db/schema/`, `db/migrations/`). Ablo never migrates.
+  After a schema change: `ablo push`, then `pnpm ablo:reload`, then test a write.
+- Agent: `agent/` holds the eve agent `scout`, its tools and its instructions.
+  `agent/lib/circle.ts` `loadRun` mints a per-run session scoped to that run's
+  team and org. The model only ever sees a run id — it cannot name a team, an
+  issue or a capability.
+- `lib/domain/` holds the domain types (`Issue`, `Project`, `Cycle`, `Status`,
+  `Priority`), the icon and priority registries, new-workspace defaults, and the
+  fixtures `db/seed.ts` turns into rows. No view reads a fixture at render time;
+  every list reads live off the Ablo pool.
+- Ablo API conventions, all in `AI_GUIDE.md`: narrow a server read by a
+  reference field with `listAllWhere` rather than `where`, which is for scalar
+  columns; `delete()` takes `{ id }`; clearing a field is `null`, since
+  `undefined` means leave it alone; take the organization id from the session
+  rather than off a row, because `.from()`-mapped fields are only present on
+  rows written through Ablo; rows seeded straight into Postgres need
+  `ablo_tenant_id` stamped by `pnpm db:backfill` before they reach a client.
+- URLs are `/{orgId}/…` where `orgId` is the workspace slug, taken from the URL
+  or `useWorkspace().organizationSlug`. Never hardcode it.
+
+Docs: `README.md` (getting started), `AI_GUIDE.md` (where each kind of logic
+lives, and the Ablo conventions), `DEPLOY.md` (production).
