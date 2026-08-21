@@ -18,7 +18,16 @@ export interface Status {
    name: string;
    color: string;
    category: StatusCategory;
+   /** Null/undefined means the status is shared by every team in the workspace. */
+   teamId?: string | null;
    icon: React.FC;
+}
+
+/** Statuses a team is allowed to use: shared workspace states plus its own. */
+export function statusesForTeam(statuses: Status[], teamId: string | undefined): Status[] {
+   return teamId
+      ? statuses.filter((status) => !status.teamId || status.teamId === teamId)
+      : statuses.filter((status) => !status.teamId);
 }
 
 /* -------------------------------------------------------------------------- */

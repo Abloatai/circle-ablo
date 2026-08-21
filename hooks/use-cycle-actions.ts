@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { useAblo } from '@/lib/ablo';
+import type { Cycle, CycleStatus } from '@/lib/domain/cycles';
 
 /**
  * Writes to a cycle.
@@ -25,11 +26,33 @@ export function useCycleActions() {
       }
    };
 
+   const setStatus = async (id: string, status: CycleStatus, teamCycles: Cycle[] = []) => {
+      if (!ablo) return;
+      try {
+         const conflicts =
+            status === 'current' || status === 'upcoming'
+               ? teamCycles.filter((cycle) => cycle.id !== id && cycle.status === status)
+               : [];
+         await Promise.all([
+            ...conflicts.map((cycle) =>
+               ablo.cycle.update({
+                  id: cycle.id,
+                  data: { status: status === 'current' ? 'completed' : 'planned' },
+               })
+            ),
+            ablo.cycle.update({ id, data: { status } }),
+         ]);
+      } catch (error) {
+         toast.error('Could not update the status', {
+            description: error instanceof Error ? error.message : undefined,
+         });
+      }
+   };
+
    return useMemo(
       () => ({
          setName: (id: string, name: string) => update(id, { name }, 'the name'),
-         setStatus: (id: string, status: 'completed' | 'current' | 'upcoming') =>
-            update(id, { status }, 'the status'),
+         setStatus,
          setDates: (id: string, startDate: string, endDate: string) =>
             update(id, { startDate, endDate }, 'the dates'),
 

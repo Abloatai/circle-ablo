@@ -11,21 +11,22 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Status } from '@/lib/domain/status';
-import { useIssues, useStatuses } from '@/hooks/use-workspace-data';
+import { useIssues, useTeamStatuses } from '@/hooks/use-workspace-data';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 
 interface StatusSelectorProps {
    status: Status;
+   teamId?: string;
    onChange: (status: Status) => void;
 }
 
-export function StatusSelector({ status, onChange }: StatusSelectorProps) {
+export function StatusSelector({ status, teamId, onChange }: StatusSelectorProps) {
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string>(status.id);
-   const allStatus = useStatuses();
-   const issues = useIssues();
+   const allStatus = useTeamStatuses(teamId);
+   const issues = useIssues().filter((issue) => !teamId || issue.teamId === teamId);
 
    useEffect(() => {
       setValue(status.id);

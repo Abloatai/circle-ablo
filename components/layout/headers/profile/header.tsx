@@ -5,9 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { issueCreatorIndex } from '@/lib/domain/issues';
 import { User } from '@/lib/domain/users';
-import { useWorkspace } from '@/components/providers/workspace-provider';
 import { cn } from '@/lib/utils';
 import { useIssues } from '@/hooks/use-workspace-data';
 import { useRightPanelStore } from '@/store/right-panel-store';
@@ -118,19 +116,14 @@ function HeaderSearch() {
 }
 
 export default function Header({ member }: { member: User }) {
-   const { members: users } = useWorkspace();
    const { orgId } = useParams<{ orgId: string }>();
    const [activeTab] = useQueryState('tab', parseAsString.withDefault('assigned'));
    const issues = useIssues();
    const { openPanel, togglePanel } = useRightPanelStore();
 
-   const memberIndex = Math.max(
-      0,
-      users.findIndex((candidate) => candidate.id === member.id)
-   );
    const count =
       activeTab === 'created'
-         ? issues.filter((issue) => issueCreatorIndex(issue, users.length) === memberIndex).length
+         ? issues.filter((issue) => issue.createdBy === member.id).length
          : issues.filter((issue) => issue.assignee?.id === member.id).length;
 
    return (

@@ -12,7 +12,7 @@ import {
 import { formatCycleDateRange } from '@/lib/domain/cycles';
 import { useCycles, useIssues, useProjects, useTeams } from '@/hooks/use-workspace-data';
 import { useWorkspace } from '@/components/providers/workspace-provider';
-import { Issue } from '@/lib/domain/issues';
+import type { HydratedIssue } from '@/lib/data/hydrate';
 import { useLabels } from '@/hooks/use-workspace-data';
 import { priorities } from '@/lib/domain/priorities';
 
@@ -105,7 +105,7 @@ export function CommandPalette() {
    // own workspace rather than the one the template shipped with.
    const orgId = pathname.split('/')[1] || organizationSlug;
 
-   const contextIssue = useMemo<Issue | undefined>(() => {
+   const contextIssue = useMemo<HydratedIssue | undefined>(() => {
       const match = pathname.match(/^\/[^/]+\/issue\/([^/]+)/);
       if (!match) return undefined;
       return issues.find((issue) => issue.identifier === match[1]);
@@ -491,48 +491,55 @@ export function CommandPalette() {
 
                   {route === 'assign' && issue && (
                      <CommandGroup heading="Assign to…">
-                        {users.slice(0, 12).map((user) => (
-                           <CommandItem
-                              key={user.id}
-                              onSelect={() => {
-                                 void setAssignee(issue.id, user.id);
-                                 toast.success(`Assigned to ${user.name}`);
-                                 close();
-                              }}
-                           >
-                              <Avatar className="size-5">
-                                 <AvatarImage src={user.avatarUrl} alt={user.name} />
-                                 <AvatarFallback className="text-[9px]">
-                                    {user.name[0]}
-                                 </AvatarFallback>
-                              </Avatar>
-                              {user.name}
-                              {issue.assignee?.id === user.id && (
-                                 <Check className="ml-auto size-4" />
-                              )}
-                           </CommandItem>
-                        ))}
+                        {users
+                           .filter((user) => !issue.teamId || user.teamIds.includes(issue.teamId))
+                           .slice(0, 12)
+                           .map((user) => (
+                              <CommandItem
+                                 key={user.id}
+                                 onSelect={() => {
+                                    void setAssignee(issue.id, user.id);
+                                    toast.success(`Assigned to ${user.name}`);
+                                    close();
+                                 }}
+                              >
+                                 <Avatar className="size-5">
+                                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                    <AvatarFallback className="text-[9px]">
+                                       {user.name[0]}
+                                    </AvatarFallback>
+                                 </Avatar>
+                                 {user.name}
+                                 {issue.assignee?.id === user.id && (
+                                    <Check className="ml-auto size-4" />
+                                 )}
+                              </CommandItem>
+                           ))}
                      </CommandGroup>
                   )}
 
                   {route === 'status' && issue && (
                      <CommandGroup heading="Change status…">
-                        {allStatus.map((candidate) => (
-                           <CommandItem
-                              key={candidate.id}
-                              onSelect={() => {
-                                 void setStatus(issue.id, candidate.id);
-                                 toast.success(`Status set to ${candidate.name}`);
-                                 close();
-                              }}
-                           >
-                              <candidate.icon />
-                              {candidate.name}
-                              {issue.status.id === candidate.id && (
-                                 <Check className="ml-auto size-4" />
-                              )}
-                           </CommandItem>
-                        ))}
+                        {allStatus
+                           .filter(
+                              (candidate) => !candidate.teamId || candidate.teamId === issue.teamId
+                           )
+                           .map((candidate) => (
+                              <CommandItem
+                                 key={candidate.id}
+                                 onSelect={() => {
+                                    void setStatus(issue.id, candidate.id);
+                                    toast.success(`Status set to ${candidate.name}`);
+                                    close();
+                                 }}
+                              >
+                                 <candidate.icon />
+                                 {candidate.name}
+                                 {issue.status.id === candidate.id && (
+                                    <Check className="ml-auto size-4" />
+                                 )}
+                              </CommandItem>
+                           ))}
                      </CommandGroup>
                   )}
 
@@ -605,22 +612,24 @@ export function CommandPalette() {
                            <Box className="text-muted-foreground" />
                            No project
                         </CommandItem>
-                        {allProjects.map((project) => (
-                           <CommandItem
-                              key={project.id}
-                              onSelect={() => {
-                                 void setProject(issue.id, project.id);
-                                 toast.success(`Moved to ${project.name}`);
-                                 close();
-                              }}
-                           >
-                              <project.icon className="text-muted-foreground" />
-                              {project.name}
-                              {issue.project?.id === project.id && (
-                                 <Check className="ml-auto size-4" />
-                              )}
-                           </CommandItem>
-                        ))}
+                        {allProjects
+                           .filter((project) => !issue.teamId || project.teamId === issue.teamId)
+                           .map((project) => (
+                              <CommandItem
+                                 key={project.id}
+                                 onSelect={() => {
+                                    void setProject(issue.id, project.id);
+                                    toast.success(`Moved to ${project.name}`);
+                                    close();
+                                 }}
+                              >
+                                 <project.icon className="text-muted-foreground" />
+                                 {project.name}
+                                 {issue.project?.id === project.id && (
+                                    <Check className="ml-auto size-4" />
+                                 )}
+                              </CommandItem>
+                           ))}
                      </CommandGroup>
                   )}
 
@@ -636,23 +645,28 @@ export function CommandPalette() {
                            <CircleDot className="text-muted-foreground" />
                            No cycle
                         </CommandItem>
-                        {cycles.slice(0, 6).map((cycle) => (
-                           <CommandItem
-                              key={cycle.id}
-                              onSelect={() => {
-                                 void setCycle(issue.id, cycle.id);
-                                 toast.success(`Moved to ${cycle.name}`);
-                                 close();
-                              }}
-                           >
-                              <CircleDot className="text-muted-foreground" />
-                              {cycle.name}
-                              <span className="text-xs text-muted-foreground ml-2">
-                                 {formatCycleDateRange(cycle)}
-                              </span>
-                              {issue.cycleId === cycle.id && <Check className="ml-auto size-4" />}
-                           </CommandItem>
-                        ))}
+                        {cycles
+                           .filter((cycle) => !issue.teamId || cycle.teamId === issue.teamId)
+                           .slice(0, 6)
+                           .map((cycle) => (
+                              <CommandItem
+                                 key={cycle.id}
+                                 onSelect={() => {
+                                    void setCycle(issue.id, cycle.id);
+                                    toast.success(`Moved to ${cycle.name}`);
+                                    close();
+                                 }}
+                              >
+                                 <CircleDot className="text-muted-foreground" />
+                                 {cycle.name}
+                                 <span className="text-xs text-muted-foreground ml-2">
+                                    {formatCycleDateRange(cycle)}
+                                 </span>
+                                 {issue.cycleId === cycle.id && (
+                                    <Check className="ml-auto size-4" />
+                                 )}
+                              </CommandItem>
+                           ))}
                      </CommandGroup>
                   )}
 

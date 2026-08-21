@@ -75,10 +75,12 @@ export interface TeamSummary {
    /** Set while the team is retired: readable, but nothing new can be made. */
    archivedAt: Date | null;
    description: string | null;
+   createdAt: string;
+   updatedAt: string;
 }
 
 export async function getTeams(organizationId: string): Promise<TeamSummary[]> {
-   return db
+   const rows = await db
       .select({
          id: t.team.id,
          key: t.team.key,
@@ -87,7 +89,15 @@ export async function getTeams(organizationId: string): Promise<TeamSummary[]> {
          color: t.team.color,
          archivedAt: t.team.archivedAt,
          description: t.team.description,
+         createdAt: t.team.createdAt,
+         updatedAt: t.team.updatedAt,
       })
       .from(t.team)
       .where(eq(t.team.organizationId, organizationId));
+
+   return rows.map((row) => ({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: (row.updatedAt ?? row.createdAt).toISOString(),
+   }));
 }

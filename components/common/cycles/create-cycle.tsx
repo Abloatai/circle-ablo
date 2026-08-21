@@ -35,11 +35,16 @@ export function CreateCycle() {
    const { teams, teamByKey, organizationId } = useWorkspace();
    const cycles = useCycles();
 
-   // The URL carries a team key (CORE), the row carries an id.
+   // Team routes accept the row id and older key-based links.
    const team = teamByKey.get(teamId) ?? teams.find((candidate) => candidate.id === teamId);
 
    const teamCycles = cycles.filter((cycle) => cycle.teamId === team?.id);
    const nextNumber = teamCycles.reduce((highest, cycle) => Math.max(highest, cycle.number), 0) + 1;
+   const initialStatus = !teamCycles.some((cycle) => cycle.status === 'current')
+      ? 'current'
+      : !teamCycles.some((cycle) => cycle.status === 'upcoming')
+        ? 'upcoming'
+        : 'planned';
 
    const [open, setOpen] = useState(false);
    const [name, setName] = useState('');
@@ -59,7 +64,7 @@ export function CreateCycle() {
                teamId: team.id,
                number: nextNumber,
                name: name.trim() || `Cycle ${nextNumber}`,
-               status: 'planned',
+               status: initialStatus,
                startDate,
                endDate,
                capacity: 100,
@@ -91,8 +96,8 @@ export function CreateCycle() {
             <DialogHeader>
                <DialogTitle>New cycle for {team.name}</DialogTitle>
                <DialogDescription>
-                  This will be cycle {nextNumber}. It starts as planned — set it current when the
-                  team picks it up.
+                  This will be cycle {nextNumber}. It starts as {initialStatus}, based on the team’s
+                  existing cycle schedule.
                </DialogDescription>
             </DialogHeader>
 

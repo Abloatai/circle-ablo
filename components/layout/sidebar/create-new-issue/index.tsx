@@ -10,7 +10,7 @@ import { useParams } from 'next/navigation';
 import { Issue } from '@/lib/domain/issues';
 import { priorities } from '@/lib/domain/priorities';
 import { useWorkspace } from '@/components/providers/workspace-provider';
-import { useIssues, useStatuses } from '@/hooks/use-workspace-data';
+import { useIssues, useTeamStatuses } from '@/hooks/use-workspace-data';
 import { levelFromPriority } from '@/lib/data/hydrate';
 import { useCreateIssueStore } from '@/store/create-issue-store';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import { AssigneeSelector } from './assignee-selector';
 import { ProjectSelector } from './project-selector';
 import { LabelSelector } from './label-selector';
 import { DialogTitle } from '@radix-ui/react-dialog';
+import { CycleSelector } from '@/components/common/issues/cycle-selector';
 
 /**
  * The "new issue" dialog. Mounted exactly once, by `CreateIssueModalProvider`,
@@ -35,19 +36,23 @@ import { DialogTitle } from '@radix-ui/react-dialog';
 export function CreateNewIssue() {
    const [createMore, setCreateMore] = useState<boolean>(false);
    const [saving, setSaving] = useState(false);
-   const { isOpen, defaultStatus, parentIssueId, openModal, closeModal } = useCreateIssueStore();
+   const { isOpen, defaultStatus, defaultCycleId, parentIssueId, openModal, closeModal } =
+      useCreateIssueStore();
    const { teamByKey, teams } = useWorkspace();
-   const statuses = useStatuses();
    const allIssues = useIssues();
    const parent = parentIssueId ? allIssues.find((issue) => issue.id === parentIssueId) : undefined;
    const params = useParams<{ teamId?: string }>();
 
    // A sub-issue lives on its parent's team; otherwise the team you are looking
    // at, falling back to the first you belong to.
-   const team =
-      (parent?.teamId ? teams.find((candidate) => candidate.id === parent.teamId) : undefined) ??
-      (params?.teamId ? teamByKey.get(params.teamId) : undefined) ??
-      teams[0];
+   const parentTeam = parent?.teamId
+      ? teams.find((candidate) => candidate.id === parent.teamId)
+      : undefined;
+   const routeTeam = params?.teamId
+      ? (teamByKey.get(params.teamId) ?? teams.find((candidate) => candidate.id === params.teamId))
+      : undefined;
+   const team = parentTeam ?? routeTeam ?? (params?.teamId ? undefined : teams[0]);
+   const statuses = useTeamStatuses(team?.id);
 
    const createDefaultData = useCallback(() => {
       return {
@@ -61,12 +66,12 @@ export function CreateNewIssue() {
          priority: priorities.find((p) => p.id === 'no-priority')!,
          labels: [],
          createdAt: new Date().toISOString(),
-         cycleId: '',
+         cycleId: defaultCycleId ?? '',
          project: undefined,
          subissues: [],
          rank: `z${Date.now().toString(36)}`,
       };
-   }, [defaultStatus, statuses]);
+   }, [defaultCycleId, defaultStatus, statuses]);
 
    const [addIssueForm, setAddIssueForm] = useState<Issue>(createDefaultData);
 
@@ -114,6 +119,7 @@ export function CreateNewIssue() {
                assigneeId: addIssueForm.assignee?.id ?? null,
                priority: levelFromPriority(addIssueForm.priority.id),
                projectId: addIssueForm.project?.id ?? null,
+               cycleId: addIssueForm.cycleId || null,
                parentIssueId,
                labelIds: addIssueForm.labels.map((label) => label.id),
                rank: addIssueForm.rank,
@@ -173,6 +179,7 @@ export function CreateNewIssue() {
                <div className="w-full flex items-center justify-start gap-1.5 flex-wrap">
                   <StatusSelector
                      status={addIssueForm.status}
+                     teamId={team?.id}
                      onChange={(newStatus) =>
                         setAddIssueForm({ ...addIssueForm, status: newStatus })
                      }
@@ -185,12 +192,14 @@ export function CreateNewIssue() {
                   />
                   <AssigneeSelector
                      assignee={addIssueForm.assignee}
+                     teamId={team?.id}
                      onChange={(newAssignee) =>
                         setAddIssueForm({ ...addIssueForm, assignee: newAssignee })
                      }
                   />
                   <ProjectSelector
                      project={addIssueForm.project}
+                     teamId={team?.id}
                      onChange={(newProject) =>
                         setAddIssueForm({ ...addIssueForm, project: newProject })
                      }
@@ -200,6 +209,12 @@ export function CreateNewIssue() {
                      onChange={(newLabels) =>
                         setAddIssueForm({ ...addIssueForm, labels: newLabels })
                      }
+                  />
+                  <CycleSelector
+                     cycleId={addIssueForm.cycleId}
+                     teamId={team?.id}
+                     compact
+                     onChange={(cycleId) => setAddIssueForm({ ...addIssueForm, cycleId })}
                   />
                </div>
             </div>

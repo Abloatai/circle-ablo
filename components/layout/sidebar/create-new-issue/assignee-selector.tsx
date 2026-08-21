@@ -19,16 +19,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface AssigneeSelectorProps {
    assignee: User | null;
+   teamId?: string;
    onChange: (assignee: User | null) => void;
 }
 
-export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) {
-   const { members: users } = useWorkspace();
+export function AssigneeSelector({ assignee, teamId, onChange }: AssigneeSelectorProps) {
+   const { members } = useWorkspace();
+   const users = members.filter((user) => !teamId || user.teamIds.includes(teamId));
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string | null>(assignee?.id || null);
 
-   const issues = useIssues();
+   const issues = useIssues().filter((issue) => !teamId || issue.teamId === teamId);
    const filterByAssignee = (userId: string | null) =>
       issues.filter((issue) => (issue.assignee?.id ?? null) === userId);
 
@@ -109,28 +111,26 @@ export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) 
                               {filterByAssignee(null).length}
                            </span>
                         </CommandItem>
-                        {users
-                           .filter((user) => user.teamIds.includes('CORE'))
-                           .map((user) => (
-                              <CommandItem
-                                 key={user.id}
-                                 value={user.id}
-                                 onSelect={() => handleAssigneeChange(user.id)}
-                                 className="flex items-center justify-between"
-                              >
-                                 <div className="flex items-center gap-2">
-                                    <Avatar className="size-5">
-                                       <AvatarImage src={user.avatarUrl} alt={user.name} />
-                                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    {user.name}
-                                 </div>
-                                 {value === user.id && <CheckIcon size={16} className="ml-auto" />}
-                                 <span className="text-muted-foreground text-xs">
-                                    {filterByAssignee(user.id).length}
-                                 </span>
-                              </CommandItem>
-                           ))}
+                        {users.map((user) => (
+                           <CommandItem
+                              key={user.id}
+                              value={user.id}
+                              onSelect={() => handleAssigneeChange(user.id)}
+                              className="flex items-center justify-between"
+                           >
+                              <div className="flex items-center gap-2">
+                                 <Avatar className="size-5">
+                                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                 </Avatar>
+                                 {user.name}
+                              </div>
+                              {value === user.id && <CheckIcon size={16} className="ml-auto" />}
+                              <span className="text-muted-foreground text-xs">
+                                 {filterByAssignee(user.id).length}
+                              </span>
+                           </CommandItem>
+                        ))}
                      </CommandGroup>
                   </CommandList>
                </Command>

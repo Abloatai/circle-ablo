@@ -1,6 +1,7 @@
 'use client';
 
 import type { HydratedIssue } from '@/lib/data/hydrate';
+import type { Cycle } from '@/lib/domain/cycles';
 import { Status } from '@/lib/domain/status';
 import { useIssueActions } from '@/hooks/use-issue-actions';
 import { useViewStore } from '@/store/view-store';
@@ -32,9 +33,17 @@ interface GroupIssuesProps {
    /** Issues of the group, already sorted upstream. */
    issues: HydratedIssue[];
    count: number;
+   cyclesById: Map<string, Cycle>;
+   defaultCycleId?: string;
 }
 
-export function GroupIssues({ group, issues, count }: GroupIssuesProps) {
+export function GroupIssues({
+   group,
+   issues,
+   count,
+   cyclesById,
+   defaultCycleId,
+}: GroupIssuesProps) {
    const { viewType } = useViewStore();
    const isViewTypeGrid = viewType === 'grid';
    const { openModal } = useCreateIssueStore();
@@ -75,7 +84,7 @@ export function GroupIssues({ group, issues, count }: GroupIssuesProps) {
                   variant="ghost"
                   onClick={(e) => {
                      e.stopPropagation();
-                     openModal(group.status);
+                     openModal(group.status, undefined, defaultCycleId);
                   }}
                >
                   <Plus className="size-4" />
@@ -86,7 +95,12 @@ export function GroupIssues({ group, issues, count }: GroupIssuesProps) {
          {viewType === 'list' ? (
             <div className="space-y-0">
                {issues.map((issue) => (
-                  <IssueLine key={issue.id} issue={issue} layoutId={true} />
+                  <IssueLine
+                     key={issue.id}
+                     issue={issue}
+                     layoutId={true}
+                     cycleName={cyclesById.get(issue.cycleId)?.name}
+                  />
                ))}
             </div>
          ) : (

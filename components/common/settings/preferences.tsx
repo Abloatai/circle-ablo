@@ -17,27 +17,34 @@ export default function Preferences() {
                <SettingsRow
                   title="Default home view"
                   description="Select which view to display when launching the app"
-                  trailing={<SelectMenu options={['Agent (default)', 'Inbox', 'My issues']} />}
+                  trailing={
+                     <SelectMenu options={['Agent (default)', 'Inbox', 'My issues']} disabled />
+                  }
+                  disabled
                />
                <SettingsRow
                   title="Display names"
                   description="Select how names are displayed in the interface"
-                  trailing={<SelectMenu options={['Username', 'Full name']} />}
+                  trailing={<SelectMenu options={['Username', 'Full name']} disabled />}
+                  disabled
                />
                <SettingsRow
                   title="First day of the week"
                   description="Used for date pickers"
-                  trailing={<SelectMenu options={['Monday', 'Sunday', 'Saturday']} />}
+                  trailing={<SelectMenu options={['Monday', 'Sunday', 'Saturday']} disabled />}
+                  disabled
                />
                <SettingsRow
                   title="Convert text emoticons into emojis"
                   description="Strings like :) will be converted to 🙂"
-                  trailing={<Switch defaultChecked />}
+                  trailing={<Switch defaultChecked disabled />}
+                  disabled
                />
                <SettingsRow
                   title="Send comments on..."
                   description="Choose which key press is used to submit comments"
-                  trailing={<SelectMenu options={['⌘+Enter', 'Enter']} />}
+                  trailing={<SelectMenu options={['⌘+Enter', 'Enter']} disabled />}
+                  disabled
                />
             </SettingsCard>
          </SettingsSection>
@@ -56,17 +63,20 @@ export default function Preferences() {
                <SettingsRow
                   title="Font size"
                   description="Adjust the size of text across the app"
-                  trailing={<SelectMenu options={['Default', 'Small', 'Large']} />}
+                  trailing={<SelectMenu options={['Default', 'Small', 'Large']} disabled />}
+                  disabled
                />
                <SettingsRow
                   title="Use pointer cursors"
                   description="Change the cursor to a pointer when hovering over any interactive elements"
-                  trailing={<Switch defaultChecked />}
+                  trailing={<Switch defaultChecked disabled />}
+                  disabled
                />
                <SettingsRow
                   title="Underline links"
                   description="Always underline links in text content"
-                  trailing={<Switch />}
+                  trailing={<Switch disabled />}
+                  disabled
                />
             </SettingsCard>
             <ThemePreferences />
@@ -77,7 +87,8 @@ export default function Preferences() {
                <SettingsRow
                   title="Open in desktop app"
                   description="Automatically open links in desktop app when possible"
-                  trailing={<Switch />}
+                  trailing={<Switch disabled />}
+                  disabled
                />
             </SettingsCard>
          </SettingsSection>
@@ -87,12 +98,14 @@ export default function Preferences() {
                <SettingsRow
                   title="Auto-assign to self"
                   description="When creating new issues, always assign them to yourself by default"
-                  trailing={<Switch defaultChecked />}
+                  trailing={<Switch defaultChecked disabled />}
+                  disabled
                />
                <SettingsRow
                   title="On move to started status, assign to yourself"
                   description="When you move an unassigned issue to started, it will be automatically assigned to you"
-                  trailing={<Switch defaultChecked />}
+                  trailing={<Switch defaultChecked disabled />}
+                  disabled
                />
             </SettingsCard>
          </SettingsSection>

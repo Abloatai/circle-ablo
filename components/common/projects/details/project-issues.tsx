@@ -3,9 +3,8 @@
 import { GroupedIssuesView } from '@/components/common/issues/grouped-issues-view';
 import { applyIssueFilters } from '@/components/common/issues/issue-filter-columns';
 import { IssueFilterBar } from '@/components/common/issues/issue-filter-bar';
-import { useProjects } from '@/hooks/use-workspace-data';
+import { useProjects, useStatuses } from '@/hooks/use-workspace-data';
 import { ProjectMissing } from './project-missing';
-import { displayOrderedStatus } from '@/lib/domain/status';
 import { useFilterStore } from '@/store/filter-store';
 import { useIssues } from '@/hooks/use-workspace-data';
 import { useMemo } from 'react';
@@ -18,6 +17,7 @@ interface ProjectIssuesProps {
 /** Project "Issues" tab: the project's issues grouped by status. */
 export default function ProjectIssues({ projectId }: ProjectIssuesProps) {
    const allProjects = useProjects();
+   const statuses = useStatuses();
    const getProjectById = (id: string) => allProjects.find((project) => project.id === id);
    const project = getProjectById(projectId);
    const allIssues = useIssues();
@@ -42,7 +42,7 @@ export default function ProjectIssues({ projectId }: ProjectIssuesProps) {
                <GroupedIssuesView
                   issues={displayedIssues}
                   totalIssues={issues}
-                  statuses={displayOrderedStatus}
+                  statuses={statuses}
                   isViewTypeGrid={false}
                />
             </div>

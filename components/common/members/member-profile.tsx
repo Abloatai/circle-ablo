@@ -7,17 +7,18 @@ import { IssueFilterBar } from '@/components/common/issues/issue-filter-bar';
 import { SearchIssues } from '@/components/common/issues/search-issues';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Issue, issueCreatorIndex } from '@/lib/domain/issues';
-import { useLabels } from '@/hooks/use-workspace-data';
+import { Issue } from '@/lib/domain/issues';
 import { priorities } from '@/lib/domain/priorities';
-import { useProjects } from '@/hooks/use-workspace-data';
-import { useTeams } from '@/hooks/use-workspace-data';
 import { User } from '@/lib/domain/users';
-import { useWorkspace } from '@/components/providers/workspace-provider';
-import { displayOrderedStatus } from '@/lib/domain/status';
 import { AvatarPresenceDot, usePresenceLabel } from '@/components/common/members/presence';
 import { useFilterStore } from '@/store/filter-store';
-import { useIssues } from '@/hooks/use-workspace-data';
+import {
+   useIssues,
+   useLabels,
+   useProjects,
+   useStatuses,
+   useTeams,
+} from '@/hooks/use-workspace-data';
 import { useRightPanelStore } from '@/store/right-panel-store';
 import { useSearchStore } from '@/store/search-store';
 import { useViewStore } from '@/store/view-store';
@@ -97,9 +98,9 @@ function useClientTimes(member: User) {
  */
 export default function MemberProfile({ member }: { member: User }) {
    const teams = useTeams();
-   const { members: users } = useWorkspace();
    const labels = useLabels();
    const projects = useProjects();
+   const statuses = useStatuses();
    const issues = useIssues();
    const [activeTab] = useQueryState('tab', parseAsString.withDefault('assigned'));
    const { localTime, joinedAgo } = useClientTimes(member);
@@ -112,17 +113,12 @@ export default function MemberProfile({ member }: { member: User }) {
    const isSearching = isSearchOpen && searchQuery.trim() !== '';
    const isViewTypeGrid = viewType === 'grid';
 
-   const memberIndex = Math.max(
-      0,
-      users.findIndex((candidate) => candidate.id === member.id)
-   );
-
    const scopedIssues = useMemo(() => {
       if (activeTab === 'created') {
-         return issues.filter((issue) => issueCreatorIndex(issue, users.length) === memberIndex);
+         return issues.filter((issue) => issue.createdBy === member.id);
       }
       return issues.filter((issue) => issue.assignee?.id === member.id);
-   }, [issues, activeTab, member.id, memberIndex, users.length]);
+   }, [issues, activeTab, member.id]);
 
    const displayedIssues = useMemo(
       () => applyIssueFilters(scopedIssues, filters),
@@ -198,9 +194,9 @@ export default function MemberProfile({ member }: { member: User }) {
             key: team.id,
             label: team.name,
             leading: <span className="text-sm shrink-0">{team.icon}</span>,
-            count: displayedIssues.length,
+            count: displayedIssues.filter((issue) => issue.teamId === team.id).length,
          })),
-      [memberTeams, displayedIssues.length]
+      [memberTeams, displayedIssues]
    );
 
    if (isSearching) {
@@ -222,7 +218,7 @@ export default function MemberProfile({ member }: { member: User }) {
                <GroupedIssuesView
                   issues={displayedIssues}
                   totalIssues={scopedIssues}
-                  statuses={displayOrderedStatus}
+                  statuses={statuses}
                   isViewTypeGrid={isViewTypeGrid}
                />
             </div>

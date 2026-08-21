@@ -5,9 +5,13 @@ import { CapacityRing } from '@/components/common/cycles/capacity-ring';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Issue } from '@/lib/domain/issues';
-import { getCycleById } from '@/lib/domain/cycles';
 import { Project } from '@/lib/domain/projects';
-import { useProjectMilestones, useProjectUpdates, useTeams } from '@/hooks/use-workspace-data';
+import {
+   useCycles,
+   useProjectMilestones,
+   useProjectUpdates,
+   useTeams,
+} from '@/hooks/use-workspace-data';
 import { useProjectDetailActions } from '@/hooks/use-project-detail-actions';
 import { PanelFilterTarget, usePanelFilter } from '@/components/common/issues/use-panel-filter';
 import { cn } from '@/lib/utils';
@@ -121,6 +125,8 @@ export function ProjectPropertiesPanel({ project, issues }: ProjectPropertiesPan
    const [milestoneDraft, setMilestoneDraft] = useState('');
 
    const teams = useTeams();
+   const cycles = useCycles();
+   const cyclesById = useMemo(() => new Map(cycles.map((cycle) => [cycle.id, cycle])), [cycles]);
    const panelFilter = usePanelFilter();
    const completed = issues.filter(isCompleted).length;
 
@@ -197,12 +203,12 @@ export function ProjectPropertiesPanel({ project, issues }: ProjectPropertiesPan
             (issue) => (issue.cycleId === '' ? undefined : issue.cycleId),
             (key) => ({
                key: String(key),
-               label: getCycleById(String(key))?.name ?? `Cycle ${key}`,
+               label: cyclesById.get(String(key))?.name ?? 'Unknown cycle',
                leading: null,
                target: { columnId: 'cycle', value: String(key) },
             })
          ),
-      [issues]
+      [issues, cyclesById]
    );
 
    return (

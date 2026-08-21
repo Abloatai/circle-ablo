@@ -2,7 +2,6 @@
 
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import type { HydratedIssue } from '@/lib/data/hydrate';
-import { getCycleById } from '@/lib/domain/cycles';
 import { useDisplaySettingsStore } from '@/store/display-settings-store';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -21,14 +20,15 @@ import { IssueContextMenu } from './issue-context-menu';
 export function IssueLine({
    issue,
    layoutId = false,
+   cycleName,
 }: {
    issue: HydratedIssue;
    layoutId?: boolean;
+   cycleName?: string;
 }) {
    const { orgId } = useParams<{ orgId: string }>();
    const { organizationSlug } = useWorkspace();
    const { displayProperties } = useDisplaySettingsStore();
-   const cycle = displayProperties.cycle && issue.cycleId ? getCycleById(issue.cycleId) : undefined;
 
    return (
       <ContextMenu>
@@ -47,7 +47,11 @@ export function IssueLine({
                      </span>
                   )}
                   {displayProperties.status && (
-                     <StatusSelector status={issue.status} issueId={issue.id} />
+                     <StatusSelector
+                        status={issue.status}
+                        issueId={issue.id}
+                        teamId={issue.teamId}
+                     />
                   )}
                   <IssueActivityIndicator issueId={issue.id} />
                </div>
@@ -67,9 +71,9 @@ export function IssueLine({
                         <ProjectBadge project={issue.project} />
                      )}
                   </div>
-                  {cycle && (
+                  {displayProperties.cycle && cycleName && (
                      <span className="text-xs text-muted-foreground border border-border rounded-md px-1.5 py-0.5 shrink-0 hidden lg:inline-block">
-                        {cycle.name}
+                        {cycleName}
                      </span>
                   )}
                   {displayProperties.dueDate && issue.dueDate && (

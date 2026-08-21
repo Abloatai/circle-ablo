@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
@@ -23,7 +23,7 @@ import {
    SelectValue,
 } from '@/components/ui/select';
 import { useAblo } from '@/lib/ablo';
-import { useStatuses } from '@/hooks/use-workspace-data';
+import { useTeamStatuses } from '@/hooks/use-workspace-data';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 /**
@@ -38,8 +38,9 @@ export function CreateProject() {
    const router = useRouter();
    const { orgId } = useParams<{ orgId: string }>();
    const { teams, myTeamIds, viewerId, organizationId } = useWorkspace();
-   const statuses = useStatuses();
    const myTeams = teams.filter((team) => myTeamIds.has(team.id));
+   const [teamId, setTeamId] = useState(myTeams[0]?.id ?? '');
+   const statuses = useTeamStatuses(teamId);
 
    // A new project starts in the earliest non-started state, the way a new
    // issue does, rather than in whichever status happens to sort first.
@@ -50,7 +51,6 @@ export function CreateProject() {
 
    const [open, setOpen] = useState(false);
    const [name, setName] = useState('');
-   const [teamId, setTeamId] = useState(myTeams[0]?.id ?? '');
    const [statusId, setStatusId] = useState(defaultStatus?.id ?? '');
    const [leadId, setLeadId] = useState(viewerId);
    const [targetDate, setTargetDate] = useState('');
@@ -58,6 +58,12 @@ export function CreateProject() {
 
    const { members } = useWorkspace();
    const teamMembers = members.filter((member) => member.teamIds.includes(teamId));
+
+   useEffect(() => {
+      if (!statuses.some((status) => status.id === statusId)) {
+         setStatusId(defaultStatus?.id ?? '');
+      }
+   }, [defaultStatus?.id, statuses, statusId]);
 
    async function create(event: React.FormEvent) {
       event.preventDefault();

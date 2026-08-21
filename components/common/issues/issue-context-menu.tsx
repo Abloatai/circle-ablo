@@ -214,14 +214,16 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                   <CircleCheck className="mr-2 size-4" /> Status
                </ContextMenuSubTrigger>
                <ContextMenuSubContent className="w-48">
-                  {status.map((s) => {
-                     const Icon = s.icon;
-                     return (
-                        <ContextMenuItem key={s.id} onClick={() => handleStatusChange(s.id)}>
-                           <Icon /> {s.name}
-                        </ContextMenuItem>
-                     );
-                  })}
+                  {status
+                     .filter((s) => !s.teamId || s.teamId === issue?.teamId)
+                     .map((s) => {
+                        const Icon = s.icon;
+                        return (
+                           <ContextMenuItem key={s.id} onClick={() => handleStatusChange(s.id)}>
+                              <Icon /> {s.name}
+                           </ContextMenuItem>
+                        );
+                     })}
                </ContextMenuSubContent>
             </ContextMenuSub>
 
@@ -234,7 +236,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                      <User className="size-4" /> Unassigned
                   </ContextMenuItem>
                   {users
-                     .filter((user) => user.teamIds.includes('CORE'))
+                     .filter((user) => !issue?.teamId || user.teamIds.includes(issue.teamId))
                      .map((user) => (
                         <ContextMenuItem
                            key={user.id}
@@ -321,14 +323,17 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                   <ContextMenuItem onClick={() => handleProjectChange(null)}>
                      <Folder className="size-4" /> No Project
                   </ContextMenuItem>
-                  {projects.slice(0, 5).map((project) => (
-                     <ContextMenuItem
-                        key={project.id}
-                        onClick={() => handleProjectChange(project.id)}
-                     >
-                        <project.icon className="size-4" /> {project.name}
-                     </ContextMenuItem>
-                  ))}
+                  {projects
+                     .filter((project) => !issue || project.teamId === issue.teamId)
+                     .slice(0, 5)
+                     .map((project) => (
+                        <ContextMenuItem
+                           key={project.id}
+                           onClick={() => handleProjectChange(project.id)}
+                        >
+                           <project.icon className="size-4" /> {project.name}
+                        </ContextMenuItem>
+                     ))}
                </ContextMenuSubContent>
             </ContextMenuSub>
 

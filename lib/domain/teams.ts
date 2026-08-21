@@ -3,6 +3,8 @@ import { User, users } from './users';
 
 export interface Team {
    id: string;
+   /** Human-readable issue prefix, e.g. CORE. */
+   key?: string;
    name: string;
    icon: string;
    joined: boolean;
@@ -11,6 +13,8 @@ export interface Team {
    /** Free text shown on the team's overview page. */
    description?: string | null;
    color: string;
+   createdAt?: string;
+   updatedAt?: string;
    members: User[];
    projects: Project[];
 }

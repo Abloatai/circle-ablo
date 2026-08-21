@@ -32,7 +32,7 @@ function IssueDragPreview({ issue }: { issue: HydratedIssue }) {
                <PrioritySelector priority={issue.priority} issueId={issue.id} />
                <span className="text-xs text-muted-foreground font-medium">{issue.identifier}</span>
             </div>
-            <StatusSelector status={issue.status} issueId={issue.id} />
+            <StatusSelector status={issue.status} issueId={issue.id} teamId={issue.teamId} />
          </div>
 
          <h3 className="text-sm font-semibold mb-3 line-clamp-2">{issue.title}</h3>
@@ -130,7 +130,11 @@ export function IssueGrid({ issue }: IssueGridProps) {
                      )}
                   </div>
                   {displayProperties.status && (
-                     <StatusSelector status={issue.status} issueId={issue.id} />
+                     <StatusSelector
+                        status={issue.status}
+                        issueId={issue.id}
+                        teamId={issue.teamId}
+                     />
                   )}
                </div>
                <Link href={`/${orgId ?? organizationSlug}/issue/${issue.identifier}`}>

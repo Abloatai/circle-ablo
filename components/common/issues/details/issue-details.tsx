@@ -1,6 +1,5 @@
 'use client';
 
-import { getIssueDetail } from '@/lib/domain/issue-details';
 import { useIssueDetail, useIssues } from '@/hooks/use-workspace-data';
 import { Paperclip, Plus, SmilePlus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
@@ -27,16 +26,12 @@ export default function IssueDetails() {
    const { openModal } = useCreateIssueStore();
    const [deleting, setDeleting] = useState(false);
 
-   // Issue links — blocked-by, related, PRs, milestone — are not modelled yet,
-   // so the sidebar still reads them from the fixtures.
-   const detail = useMemo(() => (issue ? getIssueDetail(issue) : null), [issue]);
-
    const subIssues = useMemo(
       () => (issue ? allIssues.filter((candidate) => candidate.parentIssueId === issue.id) : []),
       [allIssues, issue]
    );
 
-   if (!issue || !detail) {
+   if (!issue) {
       return (
          <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-muted-foreground">
             <p>Issue {issueId} not found.</p>

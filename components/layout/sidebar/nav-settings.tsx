@@ -94,8 +94,10 @@ export const settingsNav: SettingsNavGroup[] = [
    },
 ];
 
-/** Settings entries whose page is gated behind a feature flag. */
+/** Settings entries that are visible in the product shape but not available yet. */
 const DISABLED_URLS: Record<string, string> = {
+   '/settings/code-and-reviews': 'Coming soon',
+   '/settings/agent-personalization': 'Coming soon',
    ...(INTEGRATIONS_ENABLED
       ? {}
       : {
@@ -117,12 +119,15 @@ export function NavSettings() {
                   {group.items.map((item) => {
                      const href = `/${orgId}${item.url}`;
                      const isActive = pathname === href;
+                     const unavailableReason =
+                        group.label === 'Features' ? 'Coming soon' : DISABLED_URLS[item.url];
                      return (
                         <SidebarMenuItem key={`${group.label}-${item.name}`}>
-                           {DISABLED_URLS[item.url] ? (
-                              <Unavailable reason={DISABLED_URLS[item.url]} className="w-full">
+                           {unavailableReason ? (
+                              <Unavailable reason={unavailableReason} className="w-full">
                                  <SidebarMenuButton
                                     aria-disabled="true"
+                                    disabled
                                     className="w-full opacity-50 pointer-events-none"
                                  >
                                     <item.icon className="size-4" />

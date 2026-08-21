@@ -57,7 +57,7 @@ export async function POST(request: Request): Promise<Response> {
          document: ['read', 'create', 'update', 'delete'],
          documentFolder: ['read', 'create', 'update'],
          savedView: ['read', 'create', 'update', 'delete'],
-         notification: ['read', 'create', 'update'],
+         notification: ['read', 'create', 'update', 'delete'],
          favorite: ['read', 'create', 'delete'],
          subscription: ['read', 'create', 'delete'],
          agentRun: ['read'],

@@ -2,30 +2,21 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Team } from '@/lib/domain/teams';
-import { getCyclesByTeam } from '@/lib/domain/cycles';
 import { useTeamsDisplayStore } from '@/store/teams-display-store';
+import { format } from 'date-fns';
 import { Box, Check, Play } from 'lucide-react';
 
 interface TeamLineProps {
    team: Team;
+   cycleCount: number;
 }
 
-/** Deterministic fake created/updated dates (no created field in mock data). */
-const hashString = (value: string): number => {
-   let hash = 0;
-   for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-   return hash;
-};
+const formatAuditDate = (value: string | undefined, pattern: string) =>
+   value ? format(new Date(value), pattern) : '—';
 
-const CREATED_DATES = ['Mar 2024', 'Jun 2024', 'Sep 2024', 'Jan 2025', 'May 2025', 'Nov 2025'];
-const UPDATED_DATES = ['Jul 12', 'Jul 20', 'Jul 27', 'Jul 30', 'Aug 1', 'Aug 3'];
-
-export default function TeamLine({ team }: TeamLineProps) {
+export default function TeamLine({ team, cycleCount }: TeamLineProps) {
    const { displayProperties } = useTeamsDisplayStore();
-   const cycles = getCyclesByTeam(team.id);
    const uniqueProjects = new Set(team.projects.map((project) => project.id)).size;
-   const owner = team.members[0];
-   const hash = hashString(team.id);
 
    return (
       <div className="w-full flex items-center py-2.5 px-6 border-b hover:bg-sidebar/50 border-muted-foreground/5 text-sm">
@@ -36,7 +27,7 @@ export default function TeamLine({ team }: TeamLineProps) {
             </span>
             <span className="font-medium truncate">{team.name}</span>
             <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">
-               {team.id}
+               {team.key ?? team.id}
             </span>
          </div>
 
@@ -52,14 +43,7 @@ export default function TeamLine({ team }: TeamLineProps) {
          )}
 
          {displayProperties.owners && (
-            <div className="hidden lg:block w-[70px] shrink-0">
-               {owner && (
-                  <Avatar className="size-5">
-                     <AvatarImage src={owner.avatarUrl} alt={owner.name} />
-                     <AvatarFallback>{owner.name[0]}</AvatarFallback>
-                  </Avatar>
-               )}
-            </div>
+            <div className="hidden lg:block w-[70px] shrink-0 text-xs text-muted-foreground">—</div>
          )}
 
          {displayProperties.members && (
@@ -82,10 +66,10 @@ export default function TeamLine({ team }: TeamLineProps) {
 
          {displayProperties.cycle && (
             <div className="hidden md:flex w-[80px] shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-               {cycles.length > 0 && (
+               {cycleCount > 0 && (
                   <>
                      <Play className="size-3.5" />
-                     {cycles.length}
+                     {cycleCount}
                   </>
                )}
             </div>
@@ -100,13 +84,13 @@ export default function TeamLine({ team }: TeamLineProps) {
 
          {displayProperties.created && (
             <div className="hidden xl:block w-[90px] shrink-0 text-xs text-muted-foreground">
-               {CREATED_DATES[hash % CREATED_DATES.length]}
+               {formatAuditDate(team.createdAt, 'MMM yyyy')}
             </div>
          )}
 
          {displayProperties.updated && (
             <div className="hidden xl:block w-[90px] shrink-0 text-xs text-muted-foreground">
-               {UPDATED_DATES[hash % UPDATED_DATES.length]}
+               {formatAuditDate(team.updatedAt, 'MMM d')}
             </div>
          )}
       </div>

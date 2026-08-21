@@ -1,8 +1,10 @@
 'use client';
 
 import { useCycles } from '@/hooks/use-workspace-data';
+import { useWorkspace } from '@/components/providers/workspace-provider';
 import { format, parseISO } from 'date-fns';
 import { Fragment } from 'react';
+import { useParams } from 'next/navigation';
 import CycleLine from './cycle-line';
 import { CycleBurnupChart, CycleProgressLegend } from './cycle-burnup-chart';
 
@@ -11,7 +13,24 @@ import { CycleBurnupChart, CycleProgressLegend } from './cycle-burnup-chart';
  * newest first. The current cycle is expanded with its burn-up chart.
  */
 export default function Cycles() {
-   const cycles = useCycles();
+   const allCycles = useCycles();
+   const { teamByKey } = useWorkspace();
+   const { teamId: routeTeamId } = useParams<{ teamId: string }>();
+   const teamId = teamByKey.get(routeTeamId)?.id ?? routeTeamId;
+   const cycles = allCycles.filter((cycle) => cycle.teamId === teamId);
+
+   if (cycles.length === 0) {
+      return (
+         <div className="flex h-64 flex-col items-center justify-center gap-1 px-6 text-center">
+            <p className="text-sm font-medium">No cycles yet</p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+               Create a cycle from the button above, then assign issues to it to plan the team’s
+               work.
+            </p>
+         </div>
+      );
+   }
+
    return (
       <div className="w-full py-4">
          {cycles.map((cycle) => (
@@ -40,7 +59,7 @@ export default function Cycles() {
 
                   {/* Cycle row + expanded chart for the current cycle */}
                   <div className="flex-1 min-w-0 border-b border-border/60">
-                     <CycleLine cycle={cycle} />
+                     <CycleLine cycle={cycle} teamCycles={cycles} />
 
                      {cycle.status === 'current' && (
                         <div className="flex flex-col lg:flex-row items-stretch gap-8 px-6 pb-6 pt-2">

@@ -13,7 +13,12 @@ import {
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useDocumentActions } from '@/hooks/use-document-actions';
-import { UNFILED_FOLDER_ID, useTeamDocuments, type DocumentItem } from '@/hooks/use-workspace-data';
+import {
+   UNFILED_FOLDER_ID,
+   useRouteTeam,
+   useTeamDocuments,
+   type DocumentItem,
+} from '@/hooks/use-workspace-data';
 import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 import { ChevronRight, FolderPlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -115,12 +120,18 @@ function DocumentDialog({
  * read live and written through Ablo.
  */
 export default function TeamDocuments() {
-   const { teamId } = useParams<{ teamId: string }>();
+   const { teamId: routeTeamId } = useParams<{ teamId: string }>();
+   const team = useRouteTeam(routeTeamId);
+   const teamId = team?.id ?? '';
    const folders = useTeamDocuments(teamId);
    const { createDocument, createFolder, setFolder } = useDocumentActions(teamId);
    const [openId, setOpenId] = useState<string | null>(null);
    const [newFolder, setNewFolder] = useState(false);
    const [folderName, setFolderName] = useState('');
+
+   if (!team) {
+      return <div className="px-6 py-10 text-sm text-muted-foreground">Team not found.</div>;
+   }
 
    const open = folders.flatMap((folder) => folder.documents).find((doc) => doc.id === openId);
 

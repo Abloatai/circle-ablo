@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns';
+import type { Issue } from './issues';
 
 export type CycleStatus = 'planned' | 'upcoming' | 'current' | 'completed';
 
@@ -33,6 +34,30 @@ export interface Cycle {
    successRate?: number;
    /** Burn-up chart points (only meaningful for current / completed cycles). */
    burnup?: CycleBurnupPoint[];
+}
+
+/**
+ * Adds the issue-backed figures shown throughout the cycle UI.
+ *
+ * Scope and progress are facts about the current issue rows, not columns on a
+ * cycle. Keeping the calculation here makes the timeline, header and details
+ * panel agree as soon as a synced issue enters or leaves a cycle.
+ */
+export function withCycleProgress(cycle: Cycle, issues: Issue[]): Cycle {
+   const inCycle = issues.filter((issue) => issue.cycleId === cycle.id);
+   const completed = inCycle.filter((issue) => issue.status.category === 'completed').length;
+   const started = inCycle.filter((issue) => issue.status.category === 'started').length;
+
+   return {
+      ...cycle,
+      scope: inCycle.length,
+      started,
+      completed,
+      successRate:
+         cycle.status === 'completed' && inCycle.length > 0
+            ? Math.round((completed / inCycle.length) * 100)
+            : cycle.successRate,
+   };
 }
 
 /**

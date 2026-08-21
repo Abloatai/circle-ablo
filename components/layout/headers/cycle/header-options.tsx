@@ -14,9 +14,8 @@ import { CycleView } from '@/components/common/issues/cycle-issues';
 export default function HeaderOptions({ cycleView }: { cycleView: CycleView }) {
    const params = useParams<{ teamId?: string }>();
    const { teamByKey } = useWorkspace();
-   const { current, upcoming } = useTeamCycles(
-      params?.teamId ? teamByKey.get(params.teamId)?.id : undefined
-   );
+   const teamId = params?.teamId ? (teamByKey.get(params.teamId)?.id ?? params.teamId) : undefined;
+   const { current, upcoming } = useTeamCycles(teamId);
    const { openPanel, togglePanel } = useRightPanelStore();
    const issues = useIssues();
 

@@ -1,8 +1,7 @@
 'use client';
 
-import { CyclePlayIcon } from '@/components/common/cycles/cycle-line';
 import { Button } from '@/components/ui/button';
-import { useCycles, useIssueLinks, useIssueMilestone } from '@/hooks/use-workspace-data';
+import { useIssueLinks, useIssueMilestone } from '@/hooks/use-workspace-data';
 import type { HydratedIssue } from '@/lib/data/hydrate';
 import { Plus } from 'lucide-react';
 import { AssigneeUser } from '../assignee-user';
@@ -11,6 +10,7 @@ import { PrioritySelector } from '../priority-selector';
 import { StatusSelector } from '../status-selector';
 import { IssueRelations } from './issue-relations';
 import { IssuePullRequests } from './issue-pull-requests';
+import { CycleSelector } from '../cycle-selector';
 
 interface IssuePropertiesPanelProps {
    issue: HydratedIssue;
@@ -30,18 +30,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * assignee), cycle, labels, project + milestone, relations and linked PRs.
  */
 export function IssuePropertiesPanel({ issue }: IssuePropertiesPanelProps) {
-   const allCycles = useCycles();
-   const getCycleById = (id: string) => allCycles.find((cycle) => cycle.id === id);
    const links = useIssueLinks(issue.id);
    const milestone = useIssueMilestone(issue);
-   const cycle = issue.cycleId ? getCycleById(issue.cycleId) : undefined;
 
    return (
       <div className="flex flex-col gap-7">
          <Section title="Properties">
             <div className="flex flex-col gap-1.5">
                <div className="flex items-center gap-1.5 -ml-1.5">
-                  <StatusSelector status={issue.status} issueId={issue.id} />
+                  <StatusSelector status={issue.status} issueId={issue.id} teamId={issue.teamId} />
                   <span className="text-sm">{issue.status.name}</span>
                </div>
                <div className="flex items-center gap-1.5 -ml-1.5">
@@ -52,12 +49,7 @@ export function IssuePropertiesPanel({ issue }: IssuePropertiesPanelProps) {
                   <AssigneeUser user={issue.assignee} issueId={issue.id} teamId={issue.teamId} />
                   <span className="text-sm">{issue.assignee ? issue.assignee.name : 'Assign'}</span>
                </div>
-               {cycle && (
-                  <div className="flex items-center gap-2 mt-0.5">
-                     <CyclePlayIcon className="size-4" />
-                     <span className="text-sm">{cycle.name}</span>
-                  </div>
-               )}
+               <CycleSelector cycleId={issue.cycleId} issueId={issue.id} teamId={issue.teamId} />
             </div>
          </Section>
 

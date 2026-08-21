@@ -6,6 +6,7 @@ export interface LabelInterface {
    isGroup?: boolean;
    /** The group this label belongs to, if any. */
    parentId?: string | null;
+   createdAt?: string;
 }
 
 export const labels: LabelInterface[] = [

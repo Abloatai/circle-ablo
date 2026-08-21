@@ -6,9 +6,8 @@ import { GroupedIssuesView } from '@/components/common/issues/grouped-issues-vie
 import { InsightsPanel } from '@/components/common/issues/insights-panel';
 import { SearchIssues } from '@/components/common/issues/search-issues';
 import { BreakdownPanel } from './breakdown-panel';
-import { displayOrderedStatus } from '@/lib/domain/status';
 import { useFilterStore } from '@/store/filter-store';
-import { useIssues } from '@/hooks/use-workspace-data';
+import { useIssues, useStatuses } from '@/hooks/use-workspace-data';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useRightPanelStore } from '@/store/right-panel-store';
 import { useSearchStore } from '@/store/search-store';
@@ -28,6 +27,7 @@ export default function MyIssues() {
    const { viewType } = useViewStore();
    const { filters } = useFilterStore();
    const issues = useIssues();
+   const statuses = useStatuses();
    const { viewerId } = useWorkspace();
    const { openPanel } = useRightPanelStore();
 
@@ -73,7 +73,7 @@ export default function MyIssues() {
                <GroupedIssuesView
                   issues={displayedIssues}
                   totalIssues={scopedIssues}
-                  statuses={displayOrderedStatus}
+                  statuses={statuses}
                   isViewTypeGrid={isViewTypeGrid}
                />
             </div>

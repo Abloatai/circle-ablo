@@ -18,16 +18,17 @@ import { useEffect, useId, useState } from 'react';
 
 interface ProjectSelectorProps {
    project: Project | undefined;
+   teamId?: string;
    onChange: (project: Project | undefined) => void;
 }
 
-export function ProjectSelector({ project, onChange }: ProjectSelectorProps) {
-   const projects = useProjects();
+export function ProjectSelector({ project, teamId, onChange }: ProjectSelectorProps) {
+   const projects = useProjects().filter((project) => !teamId || project.teamId === teamId);
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string | undefined>(project?.id);
 
-   const issues = useIssues();
+   const issues = useIssues().filter((issue) => !teamId || issue.teamId === teamId);
    const filterByProject = (projectId: string) =>
       issues.filter((issue) => issue.project?.id === projectId);
 

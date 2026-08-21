@@ -2,7 +2,7 @@
 
 import { Unavailable } from '@/components/common/unavailable';
 import { Button } from '@/components/ui/button';
-import { KeyRound, Laptop, Smartphone } from 'lucide-react';
+import { Laptop } from 'lucide-react';
 import { SettingsCard, SettingsRow, SettingsSection, SettingsShell } from './shared';
 
 /** Personal "Security & access" settings (sessions, passkeys, API keys). */
@@ -13,31 +13,13 @@ export default function AccountSecurity() {
             <SettingsCard>
                <SettingsRow
                   icon={<Laptop className="size-4" />}
-                  title="Chrome on macOS"
+                  title="Current browser"
                   description={
                      <span className="inline-flex items-center gap-1.5">
                         <span className="size-1.5 rounded-full bg-[#00cc66]" />
-                        <span className="text-[#00a05a]">Current session</span> · Paris, FR · (EN,
-                        FR)
+                        <span className="text-[#00a05a]">Current session</span> · This browser
                      </span>
                   }
-               />
-            </SettingsCard>
-            <SettingsCard>
-               <SettingsRow
-                  title="1 other session"
-                  trailing={
-                     <Unavailable reason="Session management is not built">
-                        <Button size="xs" variant="ghost" disabled>
-                           Revoke all
-                        </Button>
-                     </Unavailable>
-                  }
-               />
-               <SettingsRow
-                  icon={<Smartphone className="size-4" />}
-                  title="Circle for iOS"
-                  description="Paris, FR · Last seen about 3 hours ago"
                />
             </SettingsCard>
          </SettingsSection>
@@ -66,7 +48,7 @@ export default function AccountSecurity() {
          >
             <SettingsCard>
                <SettingsRow
-                  title="1 API key"
+                  title="No API keys"
                   trailing={
                      <Unavailable reason="There is no API-key system">
                         <Button size="xs" variant="ghost" disabled>
@@ -74,18 +56,6 @@ export default function AccountSecurity() {
                         </Button>
                      </Unavailable>
                   }
-               />
-               <SettingsRow
-                  icon={<KeyRound className="size-4" />}
-                  title={
-                     <>
-                        LNDEV_PERSONAL_API_KEY
-                        <span className="text-xs text-muted-foreground font-normal">
-                           · full access · public & private teams
-                        </span>
-                     </>
-                  }
-                  description="Created 2 months ago · last used on Jul 16, 2026"
                />
             </SettingsCard>
          </SettingsSection>

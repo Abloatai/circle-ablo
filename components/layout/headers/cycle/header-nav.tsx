@@ -1,22 +1,22 @@
 'use client';
 
 import { CyclePlayIcon } from '@/components/common/cycles/cycle-line';
+import { useWorkspace } from '@/components/providers/workspace-provider';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useTeamCycles } from '@/hooks/use-workspace-data';
-import { useTeams } from '@/hooks/use-workspace-data';
 import { ChevronRight, MoreHorizontal, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CycleView } from '@/components/common/issues/cycle-issues';
 
 export default function HeaderNav({ cycleView }: { cycleView: CycleView }) {
-   const { current, upcoming } = useTeamCycles(undefined);
-   const getCurrentCycle = () => current;
-   const getUpcomingCycle = () => upcoming;
-   const teams = useTeams();
+   const { teams, teamByKey } = useWorkspace();
    const { orgId, teamId } = useParams<{ orgId: string; teamId: string }>();
-   const team = teams.find((t) => t.id === teamId) ?? teams[0];
-   const cycle = cycleView === 'active' ? getCurrentCycle() : getUpcomingCycle();
+   const team = teamByKey.get(teamId) ?? teams.find((candidate) => candidate.id === teamId);
+   const { current, upcoming } = useTeamCycles(team?.id);
+   const cycle = cycleView === 'active' ? current : upcoming;
+
+   if (!team) return null;
 
    return (
       <div className="w-full flex justify-between items-center border-b py-1.5 px-6 h-10">

@@ -22,6 +22,9 @@ export interface InboxItem extends Issue {
    type: NotificationType;
    user: User;
    timestamp: string;
+   /** Stable timestamp used for sorting; `timestamp` above is display text. */
+   notificationCreatedAt?: string;
+   snoozedUntil?: string;
    read: boolean;
 }
 

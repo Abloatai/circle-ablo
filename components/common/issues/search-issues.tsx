@@ -1,14 +1,16 @@
 'use client';
 
-import { useIssues } from '@/hooks/use-workspace-data';
+import { useCycles, useIssues } from '@/hooks/use-workspace-data';
 import type { HydratedIssue } from '@/lib/data/hydrate';
 import { useSearchStore } from '@/store/search-store';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IssueLine } from './issue-line';
 
 export function SearchIssues() {
    const [searchResults, setSearchResults] = useState<HydratedIssue[]>([]);
    const issues = useIssues();
+   const cycles = useCycles();
+   const cyclesById = useMemo(() => new Map(cycles.map((cycle) => [cycle.id, cycle])), [cycles]);
    const { searchQuery, isSearchOpen } = useSearchStore();
 
    useEffect(() => {
@@ -42,7 +44,12 @@ export function SearchIssues() {
                      </div>
                      <div className="divide-y">
                         {searchResults.map((issue) => (
-                           <IssueLine key={issue.id} issue={issue} layoutId={false} />
+                           <IssueLine
+                              key={issue.id}
+                              issue={issue}
+                              layoutId={false}
+                              cycleName={cyclesById.get(issue.cycleId)?.name}
+                           />
                         ))}
                      </div>
                   </div>

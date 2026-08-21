@@ -2,9 +2,8 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useCycles, useIssues, useTeamDocuments } from '@/hooks/use-workspace-data';
+import { useCycles, useIssues, useRouteTeam, useTeamDocuments } from '@/hooks/use-workspace-data';
 import { TeamDescription } from './team-description';
-import { useTeams } from '@/hooks/use-workspace-data';
 import { RiDonutChartFill } from '@remixicon/react';
 import { Box, CopyMinus, FileText, Layers, Settings } from 'lucide-react';
 import Link from 'next/link';
@@ -15,18 +14,16 @@ import { useParams } from 'next/navigation';
  * quick links, Linear-style.
  */
 export default function TeamOverview() {
-   const teams = useTeams();
    const { orgId, teamId } = useParams<{ orgId: string; teamId: string }>();
-   // No `?? teams[0]`: falling back showed a different team's name, members and
-   // documents under this team's URL, which is worse than saying nothing.
-   const team = teams.find((t) => t.id === teamId);
+   const team = useRouteTeam(teamId);
+   const canonicalTeamId = team?.id ?? '';
 
-   const folders = useTeamDocuments(teamId);
+   const folders = useTeamDocuments(canonicalTeamId);
    const issues = useIssues();
-   const teamCycles = useCycles().filter((cycle) => cycle.teamId === teamId);
+   const teamCycles = useCycles().filter((cycle) => cycle.teamId === canonicalTeamId);
 
    const documents = folders.flatMap((folder) => folder.documents);
-   const teamIssues = issues.filter((issue) => issue.teamId === teamId);
+   const teamIssues = issues.filter((issue) => issue.teamId === canonicalTeamId);
    const openIssues = teamIssues.filter(
       (issue) => issue.status?.category !== 'completed' && issue.status?.category !== 'canceled'
    );

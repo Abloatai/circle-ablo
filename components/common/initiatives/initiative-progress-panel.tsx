@@ -8,20 +8,8 @@ import { useProjects } from '@/hooks/use-workspace-data';
 import { health as allHealth } from '@/lib/domain/projects';
 import { useTeams } from '@/hooks/use-workspace-data';
 import { useMemo, useState } from 'react';
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 
 type BreakdownTab = 'health' | 'status' | 'teams' | 'leads';
-
-/** Deterministic pseudo-random from a string seed (SSR safe). */
-const seedNumber = (seed: string): number =>
-   seed.split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) % 997, 7);
-
-interface ProgressPoint {
-   label: string;
-   completed: number;
-   started: number;
-   scope: number;
-}
 
 /** Progress area chart + Health/Status/Teams/Leads breakdown of an initiative. */
 export function InitiativeProgressPanel({ initiative }: { initiative: Initiative }) {
@@ -32,28 +20,6 @@ export function InitiativeProgressPanel({ initiative }: { initiative: Initiative
       () => initiativeProjects(initiative, allProjects),
       [initiative, allProjects]
    );
-
-   const series = useMemo<ProgressPoint[]>(() => {
-      const seed = seedNumber(initiative.id);
-      const scope = Math.max(projects.length * 8, 16);
-      const points: ProgressPoint[] = [];
-      for (let index = 0; index < 12; index++) {
-         const progress = index / 11;
-         const wobble = ((seed * (index + 3)) % 7) / 10;
-         const completed = Math.round(scope * progress * (0.55 + wobble / 4));
-         const started = Math.min(
-            scope,
-            completed + Math.round(scope * (0.12 + wobble / 5) * (0.4 + progress))
-         );
-         points.push({
-            label: `W${index + 1}`,
-            completed,
-            started: started - completed,
-            scope: scope - started,
-         });
-      }
-      return points;
-   }, [initiative.id, projects.length]);
 
    const rows = useMemo(() => {
       if (tab === 'teams') {
@@ -108,53 +74,8 @@ export function InitiativeProgressPanel({ initiative }: { initiative: Initiative
    return (
       <div className="flex flex-col gap-3">
          <span className="text-sm font-medium">Progress</span>
-         <div className="h-44 -mx-2">
-            <ResponsiveContainer width="100%" height="100%">
-               <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-                  <XAxis
-                     dataKey="label"
-                     tick={{ fontSize: 10 }}
-                     tickLine={false}
-                     axisLine={false}
-                     interval={5}
-                  />
-                  <Tooltip
-                     contentStyle={{
-                        background: 'var(--container)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 8,
-                        fontSize: 12,
-                     }}
-                  />
-                  <Area
-                     type="monotone"
-                     dataKey="completed"
-                     stackId="progress"
-                     stroke="#5e6ad2"
-                     fill="#5e6ad2"
-                     fillOpacity={0.55}
-                     name="Completed"
-                  />
-                  <Area
-                     type="monotone"
-                     dataKey="started"
-                     stackId="progress"
-                     stroke="#f2c94c"
-                     fill="#f2c94c"
-                     fillOpacity={0.4}
-                     name="Started"
-                  />
-                  <Area
-                     type="monotone"
-                     dataKey="scope"
-                     stackId="progress"
-                     stroke="#95a2b3"
-                     fill="#95a2b3"
-                     fillOpacity={0.18}
-                     name="Scope"
-                  />
-               </AreaChart>
-            </ResponsiveContainer>
+         <div className="flex h-44 -mx-2 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground">
+            No progress history yet
          </div>
          <div className="flex items-center gap-1.5 flex-wrap">
             {(

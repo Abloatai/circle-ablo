@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useTeams } from '@/hooks/use-workspace-data';
+import { useRouteTeam } from '@/hooks/use-workspace-data';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
@@ -11,9 +11,12 @@ import { useParams } from 'next/navigation';
  * their email and role.
  */
 export default function TeamMembers() {
-   const teams = useTeams();
    const { teamId } = useParams<{ orgId: string; teamId: string }>();
-   const team = teams.find((t) => t.id === teamId) ?? teams[0];
+   const team = useRouteTeam(teamId);
+
+   if (!team) {
+      return <div className="px-6 py-10 text-sm text-muted-foreground">Team not found.</div>;
+   }
 
    const members = [...team.members].sort((a, b) => a.name.localeCompare(b.name));
 

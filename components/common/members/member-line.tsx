@@ -24,21 +24,15 @@ const displayNameOf = (user: User) =>
 /** Linear-style joined date: current year → "Mar 17", otherwise "Oct 2023". */
 const joinedLabel = (iso: string) => {
    const date = parseISO(iso);
-   return date.getFullYear() === 2026 ? format(date, 'MMM d') : format(date, 'MMM yyyy');
-};
-
-const hashString = (value: string): number => {
-   let hash = 0;
-   for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-   return hash;
+   return date.getFullYear() === new Date().getFullYear()
+      ? format(date, 'MMM d')
+      : format(date, 'MMM yyyy');
 };
 
 export default function MemberLine({ user }: MemberLineProps) {
    const { orgId } = useParams<{ orgId: string }>();
    const live = usePresence().byUserId.get(user.id);
    const isApplication = user.role === 'Application';
-   // Like Linear, some accounts show their e-mail as the primary line.
-   const showEmailAsName = !isApplication && hashString(user.id) % 4 === 0;
 
    return (
       <Link
@@ -52,9 +46,7 @@ export default function MemberLine({ user }: MemberLineProps) {
                <AvatarFallback>{user.name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col items-start overflow-hidden">
-               <span className="font-medium truncate w-full">
-                  {showEmailAsName ? user.email : displayNameOf(user)}
-               </span>
+               <span className="font-medium truncate w-full">{displayNameOf(user)}</span>
                <span className="text-xs text-muted-foreground truncate w-full">{user.name}</span>
             </div>
          </div>

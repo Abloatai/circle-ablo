@@ -2,15 +2,16 @@
 
 import { CreateCycle } from '@/components/common/cycles/create-cycle';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useTeams } from '@/hooks/use-workspace-data';
+import { useRouteTeam } from '@/hooks/use-workspace-data';
 import { ChevronRight, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 export default function HeaderNav() {
-   const teams = useTeams();
    const { orgId, teamId } = useParams<{ orgId: string; teamId: string }>();
-   const team = teams.find((t) => t.id === teamId) ?? teams[0];
+   const team = useRouteTeam(teamId);
+
+   if (!team) return null;
 
    return (
       <div className="w-full flex justify-between items-center border-b py-1.5 px-6 h-10">

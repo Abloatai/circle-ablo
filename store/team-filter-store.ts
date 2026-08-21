@@ -1,6 +1,5 @@
 'use client';
 
-import { Team } from '@/lib/domain/teams';
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 
 export type TeamsSort =
@@ -23,19 +22,13 @@ const SORTS: TeamsSort[] = [
 export interface TeamsFilterState {
    filters: {
       membership: ('Joined' | 'Not-Joined')[];
-      identifier: Team['id'][];
+      identifier: string[];
    };
    sort: TeamsSort;
 
    setSort: (sort: TeamsSort) => void;
-   setFilter: (
-      type: 'membership' | 'identifier',
-      ids: 'Joined' | 'Not-Joined' | Team['id']
-   ) => void;
-   toggleFilter: (
-      type: 'membership' | 'identifier',
-      id: 'Joined' | 'Not-Joined' | Team['id']
-   ) => void;
+   setFilter: (type: 'membership' | 'identifier', ids: 'Joined' | 'Not-Joined' | string) => void;
+   toggleFilter: (type: 'membership' | 'identifier', id: 'Joined' | 'Not-Joined' | string) => void;
    clearFilters: () => void;
    clearFilterType: (type: 'membership' | 'identifier') => void;
    hasActiveFilters: () => boolean;

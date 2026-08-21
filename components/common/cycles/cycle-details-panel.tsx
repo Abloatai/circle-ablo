@@ -15,7 +15,7 @@ import {
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCycleActions } from '@/hooks/use-cycle-actions';
-import { useIssues } from '@/hooks/use-workspace-data';
+import { useCycles, useIssues } from '@/hooks/use-workspace-data';
 import { Plus, Trash2, User, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { CapacityRing } from './capacity-ring';
@@ -117,6 +117,7 @@ function BreakdownList({ rows, isActive, toggle }: BreakdownListProps) {
 export function CycleDetailsPanel({ cycle, issues }: CycleDetailsPanelProps) {
    const { closePanel } = useRightPanelStore();
    const { setName, setStatus, remove } = useCycleActions();
+   const teamCycles = useCycles().filter((candidate) => candidate.teamId === cycle.teamId);
    const allIssues = useIssues();
    const issuesInCycle = allIssues.filter((issue) => issue.cycleId === cycle.id).length;
    const [nameDraft, setNameDraft] = useState(cycle.name);
@@ -242,14 +243,16 @@ export function CycleDetailsPanel({ cycle, issues }: CycleDetailsPanelProps) {
                         {cycleStatusLabel[cycle.status]}
                      </DropdownMenuTrigger>
                      <DropdownMenuContent align="start">
-                        {(['upcoming', 'current', 'completed'] as const).map((candidate) => (
-                           <DropdownMenuItem
-                              key={candidate}
-                              onClick={() => void setStatus(cycle.id, candidate)}
-                           >
-                              {cycleStatusLabel[candidate]}
-                           </DropdownMenuItem>
-                        ))}
+                        {(['planned', 'upcoming', 'current', 'completed'] as const).map(
+                           (candidate) => (
+                              <DropdownMenuItem
+                                 key={candidate}
+                                 onClick={() => void setStatus(cycle.id, candidate, teamCycles)}
+                              >
+                                 {cycleStatusLabel[candidate]}
+                              </DropdownMenuItem>
+                           )
+                        )}
                      </DropdownMenuContent>
                   </DropdownMenu>
                   <span className="text-xs px-2 py-1 rounded-md bg-accent text-muted-foreground">

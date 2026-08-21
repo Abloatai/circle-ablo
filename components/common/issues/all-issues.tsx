@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useWorkspace } from '@/components/providers/workspace-provider';
-import { useIssues, useStatuses } from '@/hooks/use-workspace-data';
+import { useIssues, useTeamStatuses } from '@/hooks/use-workspace-data';
 import type { HydratedIssue } from '@/lib/data/hydrate';
 import { StatusCategory } from '@/lib/domain/status';
 import { useFilterStore } from '@/store/filter-store';
@@ -35,9 +35,10 @@ export default function AllIssues({ categories, teamKey }: AllIssuesProps) {
    const { filters } = useFilterStore();
    const { openPanel } = useRightPanelStore();
    const { teamByKey } = useWorkspace();
+   const teamId = teamKey ? (teamByKey.get(teamKey)?.id ?? teamKey) : undefined;
 
    const allIssues = useIssues();
-   const allStatuses = useStatuses();
+   const allStatuses = useTeamStatuses(teamId);
 
    const isSearching = isSearchOpen && searchQuery.trim() !== '';
    const isViewTypeGrid = viewType === 'grid';
@@ -46,8 +47,6 @@ export default function AllIssues({ categories, teamKey }: AllIssuesProps) {
       () => (categories ? allStatuses.filter((s) => categories.includes(s.category)) : allStatuses),
       [allStatuses, categories]
    );
-
-   const teamId = teamKey ? (teamByKey.get(teamKey)?.id ?? teamKey) : undefined;
 
    const scopedIssues = useMemo<HydratedIssue[]>(() => {
       let scoped = allIssues;

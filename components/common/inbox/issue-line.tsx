@@ -4,7 +4,6 @@ import { InboxItem } from '@/lib/domain/inbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
-import { renderStatusIcon } from '@/lib/status-utils';
 import { getNotificationIcon } from '@/lib/notification-utils';
 
 interface IssueLineProps {
@@ -24,6 +23,8 @@ export default function IssueLine({
    showId = true,
    showStatusIcon = true,
 }: IssueLineProps) {
+   const StatusIcon = notification.status.icon;
+
    return (
       <motion.div
          {...(layoutId && { layoutId: `notification-line-${notification.id}` })}
@@ -78,7 +79,9 @@ export default function IssueLine({
                   </h4>
 
                   {showStatusIcon && (
-                     <div className="shrink-0">{renderStatusIcon(notification.status.id)}</div>
+                     <div className="shrink-0">
+                        <StatusIcon />
+                     </div>
                   )}
                </div>
 

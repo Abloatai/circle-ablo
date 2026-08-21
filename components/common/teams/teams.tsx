@@ -1,6 +1,6 @@
 'use client';
 
-import { useTeams } from '@/hooks/use-workspace-data';
+import { useCycles, useTeams } from '@/hooks/use-workspace-data';
 import { useTeamsFilterStore } from '@/store/team-filter-store';
 import { useTeamsDisplayStore } from '@/store/teams-display-store';
 import { useMemo } from 'react';
@@ -10,6 +10,7 @@ import { TeamsDisplayOptions } from './teams-display-options';
 
 export default function Teams() {
    const allTeams = useTeams();
+   const cycles = useCycles();
    const { filters } = useTeamsFilterStore();
    const { ordering, displayProperties } = useTeamsDisplayStore();
 
@@ -24,7 +25,7 @@ export default function Teams() {
       }
       if (filters.identifier.length > 0) {
          const selectedIdentifiers = new Set(filters.identifier);
-         list = list.filter((team) => selectedIdentifiers.has(team.id));
+         list = list.filter((team) => selectedIdentifiers.has(team.key ?? team.id));
       }
 
       const compare = (a: (typeof list)[number], b: (typeof list)[number]) => {
@@ -40,6 +41,12 @@ export default function Teams() {
       };
       return list.sort(compare);
    }, [allTeams, filters, ordering]);
+
+   const cycleCounts = useMemo(() => {
+      const counts = new Map<string, number>();
+      for (const cycle of cycles) counts.set(cycle.teamId, (counts.get(cycle.teamId) ?? 0) + 1);
+      return counts;
+   }, [cycles]);
 
    return (
       <div className="w-full">
@@ -80,7 +87,7 @@ export default function Teams() {
 
          <div className="w-full">
             {displayed.map((team) => (
-               <TeamLine key={team.id} team={team} />
+               <TeamLine key={team.id} team={team} cycleCount={cycleCounts.get(team.id) ?? 0} />
             ))}
          </div>
       </div>

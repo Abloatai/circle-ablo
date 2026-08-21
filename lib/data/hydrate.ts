@@ -86,7 +86,7 @@ export function hydrateStatus(row: WorkflowStateRow): Status {
       ICON_BY_CATEGORY.get(category) ??
       seedStatuses[0].icon;
 
-   return { id: row.id, name: row.name, color: row.color, category, icon };
+   return { id: row.id, name: row.name, color: row.color, category, teamId: row.teamId, icon };
 }
 
 const PROJECT_ICON = seedStatuses[0].icon; // placeholder; project icons resolve below

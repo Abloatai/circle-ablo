@@ -11,7 +11,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useMemo, useState } from 'react';
 import { ArrowUpDown, CheckIcon, ChevronRight, ListFilter, Shield } from 'lucide-react';
-import type { Team } from '@/lib/domain/teams';
 import { useTeams } from '@/hooks/use-workspace-data';
 import { useTeamsFilterStore } from '@/store/team-filter-store';
 
@@ -24,8 +23,8 @@ export function Filter() {
    const [open, setOpen] = useState(false);
    const [active, setActive] = useState<FilterType | null>(null);
 
-   const Identifiers: Team['id'][] = useMemo(() => {
-      return teams.map((team) => team.id);
+   const identifiers = useMemo(() => {
+      return teams.map((team) => team.key ?? team.id);
    }, [teams]);
 
    const { filters, sort, toggleFilter, clearFilters, getActiveFiltersCount, setSort } =
@@ -120,7 +119,7 @@ export function Filter() {
                      >
                         <ChevronRight className="size-4 rotate-180" />
                      </Button>
-                     <span className="ml-2 font-medium">Status</span>
+                     <span className="ml-2 font-medium">Identifiers</span>
                   </div>
                   <CommandList>
                      <CommandGroup>
@@ -153,7 +152,7 @@ export function Filter() {
                   </div>
                   <CommandList>
                      <CommandGroup>
-                        {Identifiers.map((id) => (
+                        {identifiers.map((id) => (
                            <CommandItem
                               key={id}
                               value={id}

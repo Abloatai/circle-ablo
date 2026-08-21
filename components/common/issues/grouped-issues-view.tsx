@@ -9,6 +9,7 @@ import { priorities } from '@/lib/domain/priorities';
 import { Status } from '@/lib/domain/status';
 import { useDisplaySettingsStore } from '@/store/display-settings-store';
 import { useFilterStore } from '@/store/filter-store';
+import { useCycles } from '@/hooks/use-workspace-data';
 import { Box, ChevronDown, User, X } from 'lucide-react';
 import { FC, useMemo, useState } from 'react';
 import { DndProvider } from 'react-dnd';
@@ -24,6 +25,8 @@ interface GroupedIssuesViewProps {
    /** Statuses to render when grouping by status (empty groups are skipped unless enabled). */
    statuses: Status[];
    isViewTypeGrid: boolean;
+   /** Seeds issues created from this view into its cycle. */
+   defaultCycleId?: string;
 }
 
 interface GroupEntry {
@@ -133,8 +136,11 @@ export const GroupedIssuesView: FC<GroupedIssuesViewProps> = ({
    totalIssues,
    statuses,
    isViewTypeGrid,
+   defaultCycleId,
 }) => {
    const { grouping, ordering, completedIssues, showEmptyGroups } = useDisplaySettingsStore();
+   const cycles = useCycles();
+   const cyclesById = useMemo(() => new Map(cycles.map((cycle) => [cycle.id, cycle])), [cycles]);
    const { filters } = useFilterStore();
    const hasActiveFilters = filters.length > 0;
 
@@ -278,6 +284,8 @@ export const GroupedIssuesView: FC<GroupedIssuesViewProps> = ({
                            group={entry.group}
                            issues={entry.issues}
                            count={entry.issues.length}
+                           cyclesById={cyclesById}
+                           defaultCycleId={defaultCycleId}
                         />
                      ))}
                      {hiddenGroups.length > 0 && <HiddenColumns entries={hiddenGroups} />}
@@ -314,6 +322,8 @@ export const GroupedIssuesView: FC<GroupedIssuesViewProps> = ({
                   group={entry.group}
                   issues={entry.issues}
                   count={entry.issues.length}
+                  cyclesById={cyclesById}
+                  defaultCycleId={defaultCycleId}
                />
             ))}
             {showFooter && <HiddenByFiltersFooter hiddenCount={hiddenCount} />}

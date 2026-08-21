@@ -5,6 +5,13 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CapacityRing } from './capacity-ring';
+import {
+   DropdownMenu,
+   DropdownMenuContent,
+   DropdownMenuItem,
+   DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useCycleActions } from '@/hooks/use-cycle-actions';
 
 export function CyclePlayIcon({ className }: { className?: string }) {
    return (
@@ -25,14 +32,16 @@ export function CyclePlayIcon({ className }: { className?: string }) {
 
 interface CycleLineProps {
    cycle: Cycle;
+   teamCycles: Cycle[];
 }
 
 /**
  * One row of the cycles timeline. Current / upcoming cycles link to their
  * dedicated issue views ("/cycle/active" and "/cycle/upcoming").
  */
-export default function CycleLine({ cycle }: CycleLineProps) {
+export default function CycleLine({ cycle, teamCycles }: CycleLineProps) {
    const { orgId, teamId } = useParams<{ orgId: string; teamId: string }>();
+   const { setStatus } = useCycleActions();
 
    const href =
       cycle.status === 'current'
@@ -49,9 +58,32 @@ export default function CycleLine({ cycle }: CycleLineProps) {
          </div>
 
          <div className="flex items-center gap-3 sm:gap-6 shrink-0">
-            <span className="text-xs px-2 py-1 rounded-md bg-accent text-muted-foreground whitespace-nowrap">
-               {cycleStatusLabel[cycle.status]}
-            </span>
+            {cycle.status === 'planned' ? (
+               <DropdownMenu>
+                  <DropdownMenuTrigger
+                     className="text-xs px-2 py-1 rounded-md bg-accent text-muted-foreground whitespace-nowrap hover:text-foreground outline-none"
+                     aria-label={`Change status for ${cycle.name}`}
+                  >
+                     {cycleStatusLabel[cycle.status]}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                     <DropdownMenuItem
+                        onClick={() => void setStatus(cycle.id, 'upcoming', teamCycles)}
+                     >
+                        Mark upcoming
+                     </DropdownMenuItem>
+                     <DropdownMenuItem
+                        onClick={() => void setStatus(cycle.id, 'current', teamCycles)}
+                     >
+                        Start cycle
+                     </DropdownMenuItem>
+                  </DropdownMenuContent>
+               </DropdownMenu>
+            ) : (
+               <span className="text-xs px-2 py-1 rounded-md bg-accent text-muted-foreground whitespace-nowrap">
+                  {cycleStatusLabel[cycle.status]}
+               </span>
+            )}
 
             {cycle.status === 'completed' ? (
                <>

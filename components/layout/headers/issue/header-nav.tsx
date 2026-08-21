@@ -21,13 +21,15 @@ export default function HeaderNav() {
    const { orgId, issueId } = useParams<{ orgId: string; issueId: string }>();
    const issues = useIssues();
 
-   const team = teams[0];
    const index = issues.findIndex((candidate) => candidate.identifier === issueId);
    const issue = index >= 0 ? issues[index] : undefined;
+   const team = issue ? teams.find((candidate) => candidate.id === issue.teamId) : undefined;
    const cycle = issue?.cycleId ? getCycleById(issue.cycleId) : undefined;
 
    const previousIssue = index > 0 ? issues[index - 1] : undefined;
    const nextIssue = index >= 0 && index < issues.length - 1 ? issues[index + 1] : undefined;
+
+   if (!issue || !team) return null;
 
    return (
       <div className="w-full flex justify-between items-center border-b py-1.5 px-6 h-10 gap-4">
@@ -55,14 +57,10 @@ export default function HeaderNav() {
                </>
             )}
             <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-            {issue && (
-               <span className="text-sm min-w-0 truncate">
-                  <span className="font-medium text-muted-foreground mr-1.5">
-                     {issue.identifier}
-                  </span>
-                  <span className="font-medium">{issue.title}</span>
-               </span>
-            )}
+            <span className="text-sm min-w-0 truncate">
+               <span className="font-medium text-muted-foreground mr-1.5">{issue.identifier}</span>
+               <span className="font-medium">{issue.title}</span>
+            </span>
             <Star className="size-3.5 text-muted-foreground shrink-0" />
             <MoreHorizontal className="size-3.5 text-muted-foreground shrink-0" />
          </div>

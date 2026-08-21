@@ -12,7 +12,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Issue } from '@/lib/domain/issues';
 import { priorities } from '@/lib/domain/priorities';
-import { Status, workflowOrderedStatus } from '@/lib/domain/status';
+import { Status } from '@/lib/domain/status';
+import { useStatuses } from '@/hooks/use-workspace-data';
 import { useRightPanelStore } from '@/store/right-panel-store';
 import { X } from 'lucide-react';
 import { useMemo } from 'react';
@@ -38,9 +39,18 @@ interface InsightsPanelProps {
 }
 
 /** Custom X axis tick rendering the status icon under each bar. */
-function StatusTick(props: { x?: number; y?: number; payload?: { value: string } }) {
-   const { x = 0, y = 0, payload } = props;
-   const currentStatus = workflowOrderedStatus.find((s) => s.id === payload?.value);
+function StatusTick({
+   x = 0,
+   y = 0,
+   payload,
+   statuses,
+}: {
+   x?: number;
+   y?: number;
+   payload?: { value: string };
+   statuses: Status[];
+}) {
+   const currentStatus = statuses.find((status) => status.id === payload?.value);
    if (!currentStatus) return <g />;
 
    const Icon = currentStatus.icon;
@@ -58,9 +68,10 @@ function StatusTick(props: { x?: number; y?: number; payload?: { value: string }
 export function InsightsPanel({ issues }: InsightsPanelProps) {
    const { closePanel } = useRightPanelStore();
    const { isActive, toggle } = usePanelFilter();
+   const statuses = useStatuses();
 
    const rows = useMemo<InsightsRow[]>(() => {
-      return workflowOrderedStatus
+      return statuses
          .map((s) => {
             const statusIssues = issues.filter((issue) => issue.status.id === s.id);
             const byPriority: Record<string, number> = {};
@@ -72,7 +83,7 @@ export function InsightsPanel({ issues }: InsightsPanelProps) {
             return { status: s, total: statusIssues.length, byPriority };
          })
          .filter((row) => row.total > 0);
-   }, [issues]);
+   }, [issues, statuses]);
 
    const chartData = useMemo(
       () =>
@@ -140,7 +151,7 @@ export function InsightsPanel({ issues }: InsightsPanelProps) {
                <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
                   <XAxis
                      dataKey="id"
-                     tick={<StatusTick />}
+                     tick={<StatusTick statuses={statuses} />}
                      axisLine={false}
                      tickLine={false}
                      interval={0}

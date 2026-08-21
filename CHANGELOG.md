@@ -12,6 +12,46 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.4]
+
+Circle's lists were still partly drawn from the fixtures the template shipped
+with. This release finishes moving them onto the workspace's own data, and
+scopes what a picker offers to the team the issue belongs to.
+
+### Added
+
+- **An issue can be put in a cycle from the issue itself** — the properties
+  panel, the context menu and the create dialog, which now keeps the cycle you
+  opened it from. Making a cycle current or upcoming moves whichever cycle held
+  that slot, since a team has one of each.
+- **The inbox can delete notifications** — all of them, the read ones, or the
+  ones whose issue is done.
+
+### Changed
+
+- **Statuses are offered per team.** A workflow state can belong to a team or to
+  the whole workspace, and Circle dropped that when reading it, so every picker
+  listed every team's states. A picker now shows the shared states plus the
+  team's own, and the command palette narrows Assign to… to the team as well.
+- **A cycle's scope and progress are computed in one place**, from the issues
+  currently in it. Each view counted for itself before, which is how the
+  timeline, the header and the details panel could disagree about the same
+  cycle.
+- **Team pages accept either the team's id or its key** in the URL, so a link
+  built from `CORE` and one built from the id both resolve.
+
+### Fixed
+
+- **Status columns, cycle lists and the insights chart showed the seed's data.**
+  Statuses came from a hardcoded array and cycles from a fixture lookup, so a
+  workspace that renamed a status or created a cycle saw neither on My Issues,
+  a project's issues, a member's profile or the insights panel.
+- **Settings entries with no page behind them are disabled** rather than
+  linking into a route Circle does not have — the whole Features group, Code &
+  reviews, Agent personalization, and the rows in team settings and
+  notification preferences whose control wrote nowhere.
+- **A team with no cycles yet gets an empty state** instead of a blank column.
+
 ## [0.5.3]
 
 This release makes an assigned agent something you can talk to: reply in the
@@ -309,7 +349,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-ablo/compare/v0.5.3...HEAD
+[unreleased]: https://github.com/Eagardh/circle-ablo/compare/v0.5.4...HEAD
+[0.5.4]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.4
 [0.5.3]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.3
 [0.5.2]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.1

@@ -19,10 +19,10 @@ import type { ProjectUpdateHealth } from '@/lib/domain/project-details';
 import type { Initiative } from '@/lib/domain/initiatives';
 import type { LabelInterface } from '@/lib/domain/labels';
 import type { Project } from '@/lib/domain/projects';
-import type { Status } from '@/lib/domain/status';
+import { statusesForTeam, type Status } from '@/lib/domain/status';
 import type { Team } from '@/lib/domain/teams';
 import type { View, ViewFilter, ViewType } from '@/lib/domain/views';
-import type { Cycle } from '@/lib/domain/cycles';
+import { withCycleProgress, type Cycle } from '@/lib/domain/cycles';
 
 const EMPTY_ROWS: never[] = [];
 
@@ -40,6 +40,12 @@ export function useStatuses(): Status[] {
    return useMemo(() => rows.map(hydrateStatus), [rows]);
 }
 
+/** Workspace-wide statuses plus statuses owned by one team. */
+export function useTeamStatuses(teamId: string | undefined): Status[] {
+   const statuses = useStatuses();
+   return useMemo(() => statusesForTeam(statuses, teamId), [statuses, teamId]);
+}
+
 export function useLabels(): LabelInterface[] {
    const rows = useAblo((ablo) => ablo.label.local.list({})) ?? EMPTY_ROWS;
    return useMemo(
@@ -50,6 +56,9 @@ export function useLabels(): LabelInterface[] {
             color: row.color,
             isGroup: row.isGroup ?? false,
             parentId: row.parentId ?? null,
+            createdAt: new Date(
+               (row as { createdAt?: string | Date }).createdAt ?? Date.now()
+            ).toISOString(),
          })),
       [rows]
    );
@@ -578,12 +587,15 @@ export function useTeams(): Team[] {
       () =>
          teams.map((team) => ({
             id: team.id,
+            key: team.key,
             name: team.name,
             icon: team.icon ?? '📋',
             color: team.color ?? '#95a2b3',
             joined: myTeamIds.has(team.id),
             archived: team.archivedAt !== null,
             description: team.description,
+            createdAt: team.createdAt,
+            updatedAt: team.updatedAt,
             members: members.filter((member) => member.teamIds.includes(team.id)),
             projects: projects.filter((project) => project.teamId === team.id),
          })),
@@ -591,30 +603,43 @@ export function useTeams(): Team[] {
    );
 }
 
+/** Resolve either form accepted by team routes: the database id or issue key. */
+export function useRouteTeam(routeTeamId: string | undefined): Team | undefined {
+   const teams = useTeams();
+   const { teamByKey } = useWorkspace();
+   const canonicalId = routeTeamId ? (teamByKey.get(routeTeamId)?.id ?? routeTeamId) : undefined;
+
+   return useMemo(() => teams.find((team) => team.id === canonicalId), [teams, canonicalId]);
+}
+
 /** Cycles for the workspace, newest number first. */
 export function useCycles(): Cycle[] {
    const rows =
       useAblo((ablo) => ablo.cycle.local.list({ orderBy: { number: 'desc' } })) ?? EMPTY_ROWS;
+   const issues = useIssues();
 
    return useMemo(
       () =>
-         rows.map((row) => ({
-            id: row.id,
-            number: row.number,
-            name: row.name,
-            teamId: row.teamId,
-            status: row.status,
-            startDate: row.startDate,
-            endDate: row.endDate,
-            capacity: row.capacity,
-            // Scope and progress are counts over issues, so they are computed
-            // by the views that show them rather than stored on the row.
-            scope: 0,
-            scopeDelta: 0,
-            started: 0,
-            completed: 0,
-         })),
-      [rows]
+         rows.map((row) =>
+            withCycleProgress(
+               {
+                  id: row.id,
+                  number: row.number,
+                  name: row.name,
+                  teamId: row.teamId,
+                  status: row.status,
+                  startDate: row.startDate,
+                  endDate: row.endDate,
+                  capacity: row.capacity,
+                  scope: 0,
+                  scopeDelta: 0,
+                  started: 0,
+                  completed: 0,
+               },
+               issues
+            )
+         ),
+      [rows, issues]
    );
 }
 
@@ -625,7 +650,8 @@ export function useTeamCycles(teamId: string | undefined): {
 } {
    const cycles = useCycles();
    return useMemo(() => {
-      const forTeam = teamId ? cycles.filter((cycle) => cycle.teamId === teamId) : cycles;
+      if (!teamId) return { current: undefined, upcoming: undefined };
+      const forTeam = cycles.filter((cycle) => cycle.teamId === teamId);
       return {
          current: forTeam.find((cycle) => cycle.status === 'current'),
          upcoming: forTeam.find((cycle) => cycle.status === 'upcoming'),

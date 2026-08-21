@@ -29,9 +29,22 @@ import IssueLine from './issue-line';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChevronLeft } from 'lucide-react';
+import {
+   AlertDialog,
+   AlertDialogAction,
+   AlertDialogCancel,
+   AlertDialogContent,
+   AlertDialogDescription,
+   AlertDialogFooter,
+   AlertDialogHeader,
+   AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+type DeleteMode = 'all' | 'read' | 'completed';
 
 export default function Inbox() {
-   const { notifications, markAsRead, markAllAsRead } = useNotifications();
+   const { notifications, markAsRead, markAllAsRead, deleteAll, deleteRead, deleteCompleted } =
+      useNotifications();
    const { selectedNotification, setSelectedNotification } = useNotificationsStore();
    const getUnreadNotifications = () => notifications.filter((item) => !item.read);
 
@@ -42,12 +55,15 @@ export default function Inbox() {
    const [ordering, setOrdering] = useState('newest');
    const [showId, setShowId] = useState(true);
    const [showStatusIcon, setShowStatusIcon] = useState(true);
+   const [deleteMode, setDeleteMode] = useState<DeleteMode | null>(null);
 
    // Filter and sort notifications based on settings
    const filteredNotifications = notifications
       .filter((notification) => {
          if (!showRead && notification.read) return false;
-         // Add snoozed filter logic here when implemented
+         const isSnoozed =
+            notification.snoozedUntil && new Date(notification.snoozedUntil).getTime() > Date.now();
+         if (!showSnoozed && isSnoozed) return false;
          return true;
       })
       .sort((a, b) => {
@@ -57,20 +73,43 @@ export default function Inbox() {
          }
          // Sort by timestamp (newest first by default)
          return ordering === 'newest'
-            ? new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-            : new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            ? new Date(b.notificationCreatedAt ?? 0).getTime() -
+                 new Date(a.notificationCreatedAt ?? 0).getTime()
+            : new Date(a.notificationCreatedAt ?? 0).getTime() -
+                 new Date(b.notificationCreatedAt ?? 0).getTime();
       });
 
-   const handleDeleteAllNotifications = () => {
-      console.log('Delete all notifications');
+   const handleDeleteAllNotifications = async () => {
+      if (await deleteAll()) setSelectedNotification(undefined);
    };
 
-   const handleDeleteReadNotifications = () => {
-      console.log('Delete read notifications');
+   const handleDeleteReadNotifications = async () => {
+      if (await deleteRead()) {
+         if (selectedNotification?.read) setSelectedNotification(undefined);
+      }
    };
 
-   const handleDeleteCompletedIssues = () => {
-      console.log('Delete notifications for completed issues');
+   const handleDeleteCompletedIssues = async () => {
+      if (await deleteCompleted()) {
+         if (selectedNotification?.status.category === 'completed') {
+            setSelectedNotification(undefined);
+         }
+      }
+   };
+
+   const deleteCount =
+      deleteMode === 'all'
+         ? notifications.length
+         : deleteMode === 'read'
+           ? notifications.filter((notification) => notification.read).length
+           : notifications.filter((notification) => notification.status.category === 'completed')
+                .length;
+
+   const confirmDelete = async () => {
+      if (deleteMode === 'all') await handleDeleteAllNotifications();
+      if (deleteMode === 'read') await handleDeleteReadNotifications();
+      if (deleteMode === 'completed') await handleDeleteCompletedIssues();
+      setDeleteMode(null);
    };
 
    const listPane = (
@@ -86,15 +125,28 @@ export default function Inbox() {
                      </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                     <DropdownMenuItem onClick={handleDeleteAllNotifications}>
+                     <DropdownMenuItem
+                        disabled={notifications.length === 0}
+                        onClick={() => setDeleteMode('all')}
+                     >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete all notifications
                      </DropdownMenuItem>
-                     <DropdownMenuItem onClick={handleDeleteReadNotifications}>
+                     <DropdownMenuItem
+                        disabled={!notifications.some((notification) => notification.read)}
+                        onClick={() => setDeleteMode('read')}
+                     >
                         <CheckCheck className="w-4 h-4 mr-2" />
                         Delete all read notifications
                      </DropdownMenuItem>
-                     <DropdownMenuItem onClick={handleDeleteCompletedIssues}>
+                     <DropdownMenuItem
+                        disabled={
+                           !notifications.some(
+                              (notification) => notification.status.category === 'completed'
+                           )
+                        }
+                        onClick={() => setDeleteMode('completed')}
+                     >
                         <Archive className="w-4 h-4 mr-2" />
                         Delete notifications for completed issues
                      </DropdownMenuItem>
@@ -207,6 +259,26 @@ export default function Inbox() {
                />
             ))}
          </div>
+         <AlertDialog
+            open={deleteMode !== null}
+            onOpenChange={(open) => !open && setDeleteMode(null)}
+         >
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>
+                     Delete {deleteCount} notification{deleteCount === 1 ? '' : 's'}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                     This permanently removes the matching notifications from your inbox. The issues
+                     themselves will not be changed.
+                  </AlertDialogDescription>
+               </AlertDialogHeader>
+               <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => void confirmDelete()}>Delete</AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
       </>
    );
 

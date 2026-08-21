@@ -15,7 +15,7 @@ import { View } from '@/lib/domain/views';
 import { useSavedViews } from '@/hooks/use-workspace-data';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { CreateView } from './create-view';
-import { useTeams } from '@/hooks/use-workspace-data';
+import { useRouteTeam } from '@/hooks/use-workspace-data';
 import { useViewsDisplayStore, ViewsOrdering } from '@/store/views-display-store';
 import { ArrowDown, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
@@ -146,11 +146,11 @@ function ViewRow({ view, orgId }: { view: View; orgId: string }) {
  * workspace is shown.
  */
 export default function Views({ teamId }: { teamId?: string }) {
-   const teams = useTeams();
    const { orgId } = useParams<{ orgId: string }>();
    const [tab, setTab] = useQueryState('tab', parseAsStringLiteral(TABS).withDefault('issues'));
    const { ordering } = useViewsDisplayStore();
-   const team = teamId ? teams.find((entry) => entry.id === teamId) : undefined;
+   const team = useRouteTeam(teamId);
+   const canonicalTeamId = team?.id;
    const savedViews = useSavedViews();
    // This row said "LN · LNDev UI · Workspace" in every workspace — the badge
    // and the name were both hardcoded from the template this began as.
@@ -160,13 +160,17 @@ export default function Views({ teamId }: { teamId?: string }) {
    const list = useMemo(() => {
       const wanted = tab === 'issues' ? 'issue' : 'project';
       let source = savedViews.filter((view) => view.type === wanted);
-      if (teamId) source = source.filter((view) => view.teamId === teamId);
+      if (canonicalTeamId) source = source.filter((view) => view.teamId === canonicalTeamId);
       return [...source].sort((a, b) => {
          if (ordering === 'created') return b.createdAt.localeCompare(a.createdAt);
          if (ordering === 'updated') return b.updatedAt.localeCompare(a.updatedAt);
          return a.name.localeCompare(b.name);
       });
-   }, [savedViews, tab, ordering, teamId]);
+   }, [savedViews, tab, ordering, canonicalTeamId]);
+
+   if (teamId && !team) {
+      return <div className="px-6 py-10 text-sm text-muted-foreground">Team not found.</div>;
+   }
 
    return (
       <div className="w-full h-full overflow-y-auto">
@@ -211,7 +215,7 @@ export default function Views({ teamId }: { teamId?: string }) {
                   · {team ? 'Team' : 'Workspace'}
                </span>
             </span>
-            <CreateView teamId={teamId} />
+            <CreateView teamId={canonicalTeamId} />
          </div>
 
          {list.map((view) => (

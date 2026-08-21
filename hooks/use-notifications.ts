@@ -6,6 +6,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useAblo } from '@/lib/ablo';
 import { useIssues } from '@/hooks/use-workspace-data';
 import type { InboxItem, NotificationType } from '@/lib/domain/inbox';
+import { toast } from 'sonner';
 
 const EMPTY_ROWS: never[] = [];
 
@@ -44,6 +45,10 @@ export function useNotifications() {
                type: row.type as NotificationType,
                user: actor ?? membersById.get(viewerId)!,
                timestamp: formatDistanceToNowStrict(at),
+               notificationCreatedAt: at.toISOString(),
+               snoozedUntil: row.snoozedUntil
+                  ? new Date(row.snoozedUntil).toISOString()
+                  : undefined,
                read: Boolean(row.readAt),
                issueId: issue.id,
             } as InboxItem & { issueId: string };
@@ -72,11 +77,38 @@ export function useNotifications() {
       );
    }, [ablo, notifications]);
 
+   const removeNotifications = useCallback(
+      async (predicate: (notification: InboxItem) => boolean) => {
+         if (!ablo) return false;
+         const matching = notifications.filter(predicate);
+         if (matching.length === 0) return true;
+         try {
+            await Promise.all(
+               matching.map((notification) => ablo.notification.delete({ id: notification.id }))
+            );
+            toast.success(
+               `${matching.length} notification${matching.length === 1 ? '' : 's'} deleted`
+            );
+            return true;
+         } catch (error) {
+            toast.error('Could not delete notifications', {
+               description: error instanceof Error ? error.message : undefined,
+            });
+            return false;
+         }
+      },
+      [ablo, notifications]
+   );
+
    return {
       notifications,
       unreadCount: notifications.filter((notification) => !notification.read).length,
       markAsRead,
       markAllAsRead,
+      deleteAll: () => removeNotifications(() => true),
+      deleteRead: () => removeNotifications((notification) => notification.read),
+      deleteCompleted: () =>
+         removeNotifications((notification) => notification.status.category === 'completed'),
    };
 }
 

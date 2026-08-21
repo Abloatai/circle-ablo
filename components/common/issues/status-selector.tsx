@@ -13,24 +13,25 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useIssueActions } from '@/hooks/use-issue-actions';
 import { useIssues } from '@/hooks/use-workspace-data';
 import { Status } from '@/lib/domain/status';
-import { useStatuses } from '@/hooks/use-workspace-data';
+import { useTeamStatuses } from '@/hooks/use-workspace-data';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
-import { renderStatusIcon } from '@/lib/status-utils';
 
 interface StatusSelectorProps {
    status: Status;
    issueId: string;
+   teamId?: string;
 }
 
-export function StatusSelector({ status, issueId }: StatusSelectorProps) {
-   const allStatus = useStatuses();
+export function StatusSelector({ status, issueId, teamId }: StatusSelectorProps) {
+   const allStatus = useTeamStatuses(teamId);
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string>(status.id);
 
    const { setStatus } = useIssueActions();
-   const issues = useIssues();
+   const issues = useIssues().filter((issue) => !teamId || issue.teamId === teamId);
+   const selectedStatus = allStatus.find((item) => item.id === value) ?? status;
 
    useEffect(() => {
       setValue(status.id);
@@ -55,7 +56,7 @@ export function StatusSelector({ status, issueId }: StatusSelectorProps) {
                   role="combobox"
                   aria-expanded={open}
                >
-                  {renderStatusIcon(value)}
+                  <selectedStatus.icon />
                </Button>
             </PopoverTrigger>
             <PopoverContent
