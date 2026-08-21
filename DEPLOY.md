@@ -62,22 +62,67 @@ Two more things that bite here:
 
 ## 2. Environment
 
-| Variable               | Needed for               | Missing means                                                             |
-| ---------------------- | ------------------------ | ------------------------------------------------------------------------- |
-| `DATABASE_URL`         | Migrations, seed, DDL    | Nothing runs.                                                             |
-| `DATABASE_URL_POOLED`  | Every request handler    | Falls back to the direct host — works, but see `db/index.ts`.             |
-| `BETTER_AUTH_SECRET`   | Sessions                 | Nothing runs.                                                             |
-| `BETTER_AUTH_URL`      | Sign-in origin           | Sign-in returns 403 from any other origin.                                |
-| `ABLO_API_KEY`         | Every write              | Nothing writes.                                                           |
-| `EVE_URL`              | Agent dispatch           | **Dispatch throws** rather than quietly trying localhost.                 |
-| `AGENT_CHANNEL_SECRET` | Agent dispatch           | The channel has no authenticator for Circle's calls and answers 401.      |
-| `AI_GATEWAY_API_KEY`   | `scout` completing a run | The agent's tools work; the model call does not.                          |
-| `RESEND_API_KEY`       | Invitation email         | Invitations log to the console. Degrades gracefully — the app still runs. |
-| `EMAIL_FROM`           | Invitation sender        | Falls back to `Circle <onboarding@resend.dev>`.                           |
+| Variable                    | Needed for               | Missing means                                                             |
+| --------------------------- | ------------------------ | ------------------------------------------------------------------------- |
+| `DATABASE_URL`              | Migrations, seed, DDL    | Nothing runs.                                                             |
+| `DATABASE_URL_POOLED`       | Every request handler    | Falls back to the direct host — works, but see `db/index.ts`.             |
+| `BETTER_AUTH_SECRET`        | Sessions                 | Nothing runs.                                                             |
+| `BETTER_AUTH_URL`           | Sign-in origin           | Sign-in returns 403 from any other origin.                                |
+| `ABLO_API_KEY`              | Every write              | Nothing writes.                                                           |
+| `EVE_URL`                   | Agent dispatch           | **Dispatch throws** rather than quietly trying localhost.                 |
+| `AGENT_CHANNEL_SECRET`      | Agent dispatch           | The channel has no authenticator for Circle's calls and answers 401.      |
+| `AI_GATEWAY_API_KEY`        | `scout` completing a run | The agent's tools work; the model call does not.                          |
+| `GITHUB_APP_ID`             | GitHub integration       | GitHub cannot be connected.                                               |
+| `GITHUB_APP_SLUG`           | GitHub installation URL  | GitHub cannot be connected.                                               |
+| `GITHUB_APP_PRIVATE_KEY`    | GitHub API access        | Private pull requests cannot be read.                                     |
+| `GITHUB_APP_WEBHOOK_SECRET` | GitHub webhooks          | Repository and pull-request changes cannot be accepted safely.            |
+| `RESEND_API_KEY`            | Invitation email         | Invitations log to the console. Degrades gracefully — the app still runs. |
+| `EMAIL_FROM`                | Invitation sender        | Falls back to `Circle <onboarding@resend.dev>`.                           |
 
 ---
 
-## 3. What the agent channel accepts
+## 3. Register the GitHub App
+
+Each Circle deployment owns one GitHub App. This keeps credentials out of the
+repository and lets every fork use its own name, URL, and trust boundary.
+
+In GitHub, create a GitHub App with these values, replacing `circle.example`
+with the deployment origin:
+
+- Homepage URL: `https://circle.example`
+- Setup URL: `https://circle.example/api/github/callback`
+- Redirect on update: disabled (updates opened directly in GitHub do not carry
+  Circle's signed setup state)
+- Webhook URL: `https://circle.example/api/github/webhook`
+- Webhook secret: a new high-entropy value
+- Repository permissions: **Metadata: read-only** and **Pull requests: read-only**
+- Subscribe to events: **Installation**, **Installation repositories**, and
+  **Pull request**
+
+Generate a private key after registering the app. Set its app id, URL slug,
+private key, and webhook secret as the four `GITHUB_APP_*` variables above.
+`GITHUB_APP_PRIVATE_KEY` may be the PEM with `\\n` in place of line breaks, or
+the complete PEM base64 encoded.
+
+Set all four variables on both the Next.js deployment and the eve deployment.
+The app handles installation and webhooks; Scout's `get_pull_request` tool runs
+inside eve and mints a short-lived installation token there. The token is kept
+server-side and is never sent to the model or browser.
+
+After deploying, a workspace admin opens **Settings → Integrations**, connects
+GitHub, and maps each repository to a Circle team. An unassigned or disabled
+repository is unavailable to agents even if the GitHub installation can access
+it.
+
+GitHub's registration, setup-URL, and webhook-signature references:
+
+- https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app
+- https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/about-the-setup-url
+- https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
+
+---
+
+## 4. What the agent channel accepts
 
 `agent/channels/eve.ts` walks its authenticators in order and stops at the first
 that authenticates:
@@ -101,13 +146,16 @@ correct-looking credential is refused.
 
 ---
 
-## 4. Order
+## 5. Order
 
 1. Neon: production database, `wal_level = logical`, restart.
 2. Drizzle: `pnpm db:migrate` against `DATABASE_URL`.
 3. Ablo: `connect apply`, `connect check`, `push`, `doctor`.
-4. Deploy the app with the table above filled in.
-5. Deploy eve, set `EVE_URL` and `AGENT_CHANNEL_SECRET` on both sides.
-6. Assign an issue to `scout` and watch the run row.
+4. Register the GitHub App and configure its four environment variables on the
+   app and eve.
+5. Deploy the app with the table above filled in.
+6. Deploy eve, set `EVE_URL` and `AGENT_CHANNEL_SECRET` on both sides.
+7. Connect GitHub in workspace settings, map repositories to teams, then assign
+   an issue with a pull-request link to `scout`.
 
 Seeding is for development. `pnpm db:seed` truncates the work tables.

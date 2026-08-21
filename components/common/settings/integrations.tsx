@@ -1,190 +1,327 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
-import { ChevronRight, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { INTEGRATION_LOGOS } from './integration-logos';
+import { useEffect, useState } from 'react';
+import { ExternalLink, Github, Loader2, RefreshCw, Unplug } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
-   ENABLED_INTEGRATIONS,
-   INTEGRATION_CATEGORIES,
-   INTEGRATIONS,
-   Integration,
-} from './integrations-data';
+   AlertDialog,
+   AlertDialogAction,
+   AlertDialogCancel,
+   AlertDialogContent,
+   AlertDialogDescription,
+   AlertDialogFooter,
+   AlertDialogHeader,
+   AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { SettingsCard, SettingsSection, SettingsShell } from './shared';
 
-/** How many cards a category shows before "Show all". */
-const VISIBLE_PER_CATEGORY = 8;
+export interface GitHubInstallationView {
+   id: string;
+   installationId: number;
+   accountLogin: string;
+   repositorySelection: string;
+   suspended: boolean;
+   repositories: Array<{
+      id: string;
+      fullName: string;
+      htmlUrl: string;
+      private: boolean;
+      enabled: boolean;
+      teamId: string | null;
+   }>;
+}
 
-function IntegrationIcon({ integration, size = 36 }: { integration: Integration; size?: number }) {
-   const Logo = INTEGRATION_LOGOS[integration.id];
-   if (Logo) {
-      return (
-         <span
-            className="rounded-md border bg-background inline-flex items-center justify-center shrink-0"
-            style={{ width: size, height: size }}
-            aria-hidden
-         >
-            <Logo className="size-[60%]" />
-         </span>
-      );
+interface IntegrationsProps {
+   configured: boolean;
+   canManage: boolean;
+   result?: string;
+   teams: Array<{ id: string; name: string }>;
+   installations: GitHubInstallationView[];
+}
+
+const RESULT_MESSAGES: Record<string, { kind: 'success' | 'error'; message: string }> = {
+   'connected': { kind: 'success', message: 'GitHub installation connected' },
+   'cancelled': { kind: 'error', message: 'GitHub installation was cancelled' },
+   'invalid-state': { kind: 'error', message: 'The GitHub connection expired. Please try again.' },
+   'invalid_installation': { kind: 'error', message: 'GitHub did not return a valid installation' },
+   'failed': { kind: 'error', message: 'Could not connect the GitHub installation' },
+   'forbidden': { kind: 'error', message: 'Workspace admin access is required' },
+};
+
+async function responseError(response: Response): Promise<string> {
+   try {
+      return ((await response.json()) as { error?: string }).error ?? 'Request failed';
+   } catch {
+      return 'Request failed';
    }
-   const initials = integration.name
-      .replace(/[^a-zA-Z0-9 ]/g, '')
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase();
+}
+
+export default function Integrations({
+   configured,
+   canManage,
+   result,
+   teams,
+   installations,
+}: IntegrationsProps) {
+   const router = useRouter();
+   const [busy, setBusy] = useState<string | null>(null);
+   const [disconnecting, setDisconnecting] = useState<GitHubInstallationView | null>(null);
+
+   useEffect(() => {
+      if (!result) return;
+      const notice = RESULT_MESSAGES[result];
+      if (!notice) return;
+      if (notice.kind === 'success') toast.success(notice.message);
+      else toast.error(notice.message);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('github');
+      window.history.replaceState(window.history.state, '', url);
+   }, [result]);
+
+   async function updateRepository(
+      repositoryId: string,
+      change: { teamId?: string | null; enabled?: boolean }
+   ) {
+      setBusy(repositoryId);
+      const response = await fetch('/api/github/repositories', {
+         method: 'PATCH',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ repositoryId, ...change }),
+      });
+      setBusy(null);
+      if (!response.ok) {
+         toast.error(await responseError(response));
+         return;
+      }
+      router.refresh();
+   }
+
+   async function syncRepositories() {
+      setBusy('sync');
+      const response = await fetch('/api/github/sync', { method: 'POST' });
+      setBusy(null);
+      if (!response.ok) {
+         toast.error(await responseError(response));
+         return;
+      }
+      const body = (await response.json()) as { repositories: number };
+      toast.success(`Synced ${body.repositories} GitHub repositories`);
+      router.refresh();
+   }
+
+   async function disconnect() {
+      if (!disconnecting) return;
+      setBusy(disconnecting.id);
+      const response = await fetch('/api/github/disconnect', {
+         method: 'DELETE',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ installationId: disconnecting.id }),
+      });
+      setBusy(null);
+      setDisconnecting(null);
+      if (!response.ok) {
+         toast.error(await responseError(response));
+         return;
+      }
+      toast.success('GitHub disconnected from this workspace');
+      router.refresh();
+   }
+
    return (
-      <span
-         className="rounded-md inline-flex items-center justify-center font-semibold text-white shrink-0 select-none"
-         style={{
-            width: size,
-            height: size,
-            backgroundColor: integration.color,
-            fontSize: size * 0.34,
-         }}
-         aria-hidden
+      <SettingsShell
+         title="Integrations"
+         description="Connect services that your workspace and agents can securely use."
       >
-         {initials}
-      </span>
-   );
-}
-
-function StatusBadge({ status }: { status: NonNullable<Integration['status']> }) {
-   return (
-      <span className="text-[11px] text-muted-foreground border rounded px-1 py-px leading-none shrink-0">
-         {status === 'enabled' ? 'Enabled' : 'Pre-installed'}
-      </span>
-   );
-}
-
-function IntegrationCard({ integration }: { integration: Integration }) {
-   return (
-      <button className="flex items-start gap-3 rounded-lg border bg-container p-3 text-left hover:bg-accent/50 transition-colors">
-         <IntegrationIcon integration={integration} />
-         <span className="flex flex-col gap-0.5 min-w-0">
-            <span className="flex items-center gap-2">
-               <span className="text-sm font-medium truncate">{integration.name}</span>
-               {integration.status && <StatusBadge status={integration.status} />}
-            </span>
-            <span className="text-xs text-muted-foreground line-clamp-2">
-               {integration.description}
-            </span>
-         </span>
-      </button>
-   );
-}
-
-function CategorySection({ label, items }: { label: string; items: Integration[] }) {
-   const [expanded, setExpanded] = useState(false);
-   const visible = expanded ? items : items.slice(0, VISIBLE_PER_CATEGORY);
-   return (
-      <section className="flex flex-col gap-3">
-         <h2 className="text-base font-medium">{label}</h2>
-         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {visible.map((integration) => (
-               <IntegrationCard key={integration.id} integration={integration} />
-            ))}
-         </div>
-         {!expanded && items.length > VISIBLE_PER_CATEGORY && (
-            <button
-               onClick={() => setExpanded(true)}
-               className="self-start text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-            >
-               Show all
-               <ChevronRight className="size-3" />
-            </button>
-         )}
-      </section>
-   );
-}
-
-/**
- * Workspace "Integrations" directory (settings/integrations): search,
- * enabled integrations carousel and categorized integration cards.
- */
-export default function Integrations() {
-   const [query, setQuery] = useState('');
-
-   const searchResults = useMemo(() => {
-      const needle = query.trim().toLowerCase();
-      if (!needle) return null;
-      return Object.values(INTEGRATIONS).filter(
-         (integration) =>
-            integration.name.toLowerCase().includes(needle) ||
-            integration.description.toLowerCase().includes(needle)
-      );
-   }, [query]);
-
-   return (
-      <div className="w-full overflow-y-auto h-full">
-         <div className="max-w-2xl mx-auto px-6 py-10 flex flex-col gap-8">
-            <div className="flex flex-col gap-1">
-               <h1 className="text-2xl font-medium">Integrations</h1>
-               <p className="text-sm text-muted-foreground">
-                  Enhance your workspace with a wide variety of add-ons and integrations
-               </p>
-            </div>
-
-            <div className="relative">
-               <Search className="size-4 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
-               <Input
-                  placeholder="Search integrations"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  className="pl-8 h-9"
-               />
-            </div>
-
-            {searchResults ? (
-               <section className="flex flex-col gap-3">
-                  <h2 className="text-base font-medium">
-                     {searchResults.length} result{searchResults.length === 1 ? '' : 's'}
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                     {searchResults.map((integration) => (
-                        <IntegrationCard key={integration.id} integration={integration} />
-                     ))}
+         <SettingsSection
+            title="GitHub"
+            description="Let Scout inspect pull requests, including private repositories, without exposing installation tokens to the model."
+            action={
+               configured && canManage ? (
+                  <Button size="sm" onClick={() => window.location.assign('/api/github/install')}>
+                     <Github />
+                     {installations.length ? 'Add installation' : 'Connect GitHub'}
+                  </Button>
+               ) : undefined
+            }
+         >
+            {!configured ? (
+               <SettingsCard>
+                  <div className="flex items-start gap-3 px-4 py-4">
+                     <Github className="size-5 mt-0.5" />
+                     <div>
+                        <p className="text-sm font-medium">GitHub App credentials are missing</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                           Configure GITHUB_APP_ID, GITHUB_APP_SLUG, GITHUB_APP_PRIVATE_KEY, and
+                           GITHUB_APP_WEBHOOK_SECRET on this deployment.
+                        </p>
+                     </div>
                   </div>
-               </section>
+               </SettingsCard>
+            ) : installations.length === 0 ? (
+               <SettingsCard>
+                  <div className="flex items-center gap-3 px-4 py-5">
+                     <span className="inline-flex size-9 items-center justify-center rounded-md bg-muted">
+                        <Github className="size-5" />
+                     </span>
+                     <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">No GitHub installation connected</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                           Install the app and choose the repositories this workspace may access.
+                        </p>
+                     </div>
+                     {!canManage && (
+                        <span className="text-xs text-muted-foreground">
+                           Workspace admin required
+                        </span>
+                     )}
+                  </div>
+               </SettingsCard>
             ) : (
-               <>
-                  <section className="flex flex-col gap-3">
-                     <div className="flex items-center justify-between">
-                        <h2 className="text-base font-medium">Enabled</h2>
-                        <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                           View all
-                        </button>
-                     </div>
-                     <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                        {ENABLED_INTEGRATIONS.map((integration) => (
-                           <button
-                              key={integration.id}
-                              className="flex flex-col items-start gap-2 rounded-lg border bg-container p-3 w-32 shrink-0 hover:bg-accent/50 transition-colors"
-                           >
-                              <IntegrationIcon integration={integration} size={28} />
-                              <span className="flex flex-col items-start">
-                                 <span className="text-xs font-medium truncate max-w-full">
-                                    {integration.name}
-                                 </span>
-                                 <span className="text-[11px] text-muted-foreground">Enabled</span>
-                              </span>
-                           </button>
-                        ))}
-                     </div>
-                  </section>
+               <div className="flex flex-col gap-4">
+                  {installations.map((installation) => (
+                     <SettingsCard key={installation.id}>
+                        <div className="flex items-center gap-3 px-4 py-3">
+                           <Github className="size-5" />
+                           <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">
+                                 {installation.accountLogin}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                 {installation.repositories.length} repositories ·{' '}
+                                 {installation.repositorySelection === 'all'
+                                    ? 'All repositories'
+                                    : 'Selected repositories'}
+                              </p>
+                           </div>
+                           {installation.suspended && (
+                              <span className="text-xs text-destructive">Suspended</span>
+                           )}
+                           <Button variant="ghost" size="xs" asChild>
+                              <a
+                                 href={`https://github.com/settings/installations/${installation.installationId}`}
+                                 target="_blank"
+                                 rel="noreferrer"
+                              >
+                                 Manage
+                                 <ExternalLink />
+                              </a>
+                           </Button>
+                        </div>
 
-                  {INTEGRATION_CATEGORIES.map((category) => (
-                     <CategorySection
-                        key={category.id}
-                        label={category.label}
-                        items={category.items.map((id) => INTEGRATIONS[id])}
-                     />
+                        {installation.repositories.length === 0 ? (
+                           <div className="px-4 py-4 text-xs text-muted-foreground">
+                              No repositories are available to this installation.
+                           </div>
+                        ) : (
+                           installation.repositories.map((repository) => (
+                              <div
+                                 key={repository.id}
+                                 className="flex flex-wrap items-center gap-3 px-4 py-3"
+                              >
+                                 <div className="min-w-40 flex-1">
+                                    <a
+                                       className="text-sm font-medium hover:underline"
+                                       href={repository.htmlUrl}
+                                       target="_blank"
+                                       rel="noreferrer"
+                                    >
+                                       {repository.fullName}
+                                    </a>
+                                    <p className="text-xs text-muted-foreground">
+                                       {repository.private ? 'Private' : 'Public'} repository
+                                    </p>
+                                 </div>
+                                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    Team
+                                    <select
+                                       aria-label={`Team for ${repository.fullName}`}
+                                       value={repository.teamId ?? ''}
+                                       disabled={!canManage || busy === repository.id}
+                                       onChange={(event) =>
+                                          void updateRepository(repository.id, {
+                                             teamId: event.target.value || null,
+                                          })
+                                       }
+                                       className="h-8 max-w-44 rounded-md border bg-background px-2 text-sm text-foreground disabled:opacity-50"
+                                    >
+                                       <option value="">Not available to agents</option>
+                                       {teams.map((team) => (
+                                          <option key={team.id} value={team.id}>
+                                             {team.name}
+                                          </option>
+                                       ))}
+                                    </select>
+                                 </label>
+                                 {busy === repository.id && (
+                                    <Loader2 className="size-4 animate-spin" />
+                                 )}
+                                 <Switch
+                                    aria-label={`Enable ${repository.fullName}`}
+                                    checked={repository.enabled}
+                                    disabled={!canManage || busy === repository.id}
+                                    onCheckedChange={(enabled) =>
+                                       void updateRepository(repository.id, { enabled })
+                                    }
+                                 />
+                              </div>
+                           ))
+                        )}
+
+                        {canManage && (
+                           <div className="flex items-center justify-end gap-2 px-4 py-3">
+                              <Button
+                                 variant="ghost"
+                                 size="xs"
+                                 disabled={busy !== null}
+                                 onClick={() => setDisconnecting(installation)}
+                              >
+                                 <Unplug />
+                                 Disconnect
+                              </Button>
+                           </div>
+                        )}
+                     </SettingsCard>
                   ))}
-               </>
+
+                  {canManage && (
+                     <Button
+                        variant="outline"
+                        size="sm"
+                        className="self-start"
+                        disabled={busy !== null}
+                        onClick={() => void syncRepositories()}
+                     >
+                        {busy === 'sync' ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+                        Sync repositories
+                     </Button>
+                  )}
+               </div>
             )}
-         </div>
-      </div>
+         </SettingsSection>
+
+         <AlertDialog
+            open={disconnecting !== null}
+            onOpenChange={(open) => !open && setDisconnecting(null)}
+         >
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>Disconnect {disconnecting?.accountLogin}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                     Circle will remove its local repository access. The GitHub App remains
+                     installed until you uninstall it in GitHub.
+                  </AlertDialogDescription>
+               </AlertDialogHeader>
+               <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => void disconnect()}>
+                     Disconnect
+                  </AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
+      </SettingsShell>
    );
 }

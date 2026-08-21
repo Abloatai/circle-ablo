@@ -21,7 +21,7 @@
 export const REVIEWS_ENABLED = false;
 
 /**
- * The integrations directory and Connected accounts.
+ * Connected accounts.
  *
  * Off because none of them connect to anything. There is no OAuth flow, no
  * installation and nowhere to store a connection, so every card in it is a
@@ -31,10 +31,7 @@ export const REVIEWS_ENABLED = false;
  * called "octo-relay" with a Connected badge, so settings asserted a link that
  * has never existed and sent people looking for a repository picker.
  *
- * Circle's one real outside link is narrower than either page implies: pasting
- * a pull request URL onto an issue resolves its title and state from GitHub
- * (`app/api/pull-requests`). There is nothing to connect and no repo to choose
- * — the repo is whichever the pasted URL names. `GITHUB_TOKEN` only raises the
- * rate limit and reaches private repositories.
+ * GitHub installations now live in Settings → Integrations. This flag remains
+ * only for the separate personal-account OAuth surface, which is not built.
  */
-export const INTEGRATIONS_ENABLED = false;
+export const CONNECTED_ACCOUNTS_ENABLED = false;

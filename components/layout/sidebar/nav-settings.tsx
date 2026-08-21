@@ -1,6 +1,5 @@
 'use client';
 
-import { INTEGRATIONS_ENABLED } from '@/lib/features';
 import { Unavailable } from '@/components/common/unavailable';
 import {
    SidebarGroup,
@@ -98,12 +97,7 @@ export const settingsNav: SettingsNavGroup[] = [
 const DISABLED_URLS: Record<string, string> = {
    '/settings/code-and-reviews': 'Coming soon',
    '/settings/agent-personalization': 'Coming soon',
-   ...(INTEGRATIONS_ENABLED
-      ? {}
-      : {
-           '/settings/integrations': 'Coming soon',
-           '/settings/connected-accounts': 'Coming soon',
-        }),
+   '/settings/connected-accounts': 'Coming soon',
 };
 
 export function NavSettings() {
@@ -120,7 +114,9 @@ export function NavSettings() {
                      const href = `/${orgId}${item.url}`;
                      const isActive = pathname === href;
                      const unavailableReason =
-                        group.label === 'Features' ? 'Coming soon' : DISABLED_URLS[item.url];
+                        group.label === 'Features' && item.url !== '/settings/integrations'
+                           ? 'Coming soon'
+                           : DISABLED_URLS[item.url];
                      return (
                         <SidebarMenuItem key={`${group.label}-${item.name}`}>
                            {unavailableReason ? (

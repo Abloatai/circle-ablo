@@ -12,6 +12,46 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.5]
+
+Circle talks to GitHub through a GitHub App. Pull request links resolve in
+private repositories, they stay current after they are pasted, and the agent
+can read the pull request an issue is about.
+
+### Added
+
+- **Settings → Integrations connects a GitHub App.** A workspace owner or admin
+  installs it, chooses which repositories Circle may see, and assigns each one
+  to a team. The page was a directory of cards that connected to nothing; it is
+  now the actual installation.
+- **Pull requests stay current.** A webhook updates a linked pull request's
+  title and state as it moves, instead of leaving whatever the paste captured.
+  Deliveries are signature-checked and recorded by id, so GitHub's retries do
+  nothing twice.
+- **The agent can inspect a pull request** — title, body, commits, changed
+  files and a bounded diff — through `get_pull_request`, including in private
+  repositories. It only reads a pull request that is linked or mentioned in the
+  issue it was assigned, and only from a repository enabled for that issue's
+  team.
+
+### Changed
+
+- **`GITHUB_TOKEN` is replaced by `GITHUB_APP_ID`, `GITHUB_APP_SLUG`,
+  `GITHUB_APP_PRIVATE_KEY` and `GITHUB_APP_WEBHOOK_SECRET`.** Registering the
+  app is walked through in `DEPLOY.md`. Set them on the eve deployment as well
+  as the Next.js one, because the agent's tool mints its own installation
+  token. Nothing in the tracker requires them; without them, pull request links
+  resolve the way they did before, for public repositories only.
+- **The app's credentials stay in the environment.** Only GitHub's opaque
+  installation id is stored, and every call mints a short-lived installation
+  token server-side, so neither the database nor the browser holds a
+  credential.
+
+### Migrations
+
+- `0019_broken_romulus` adds `github_installation`, `github_repository` and
+  `github_webhook_delivery`. Run `pnpm db:migrate` before deploying.
+
 ## [0.5.4]
 
 Circle's lists were still partly drawn from the fixtures the template shipped
@@ -349,13 +389,14 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-ablo/compare/v0.5.4...HEAD
-[0.5.4]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.4
-[0.5.3]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.3
-[0.5.2]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.2
-[0.5.1]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.1
-[0.5.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.0
-[0.4.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.4.0
-[0.3.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.3.0
-[0.2.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.2.0
-[0.1.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.1.0
+[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.5
+[0.5.4]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.4
+[0.5.3]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.3
+[0.5.2]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.2
+[0.5.1]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.1
+[0.5.0]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.0
+[0.4.0]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.4.0
+[0.3.0]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.3.0
+[0.2.0]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.2.0
+[0.1.0]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.1.0

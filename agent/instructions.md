@@ -53,6 +53,9 @@ Work in this order:
    primary sources — filings, standards bodies, company statements, official
    statistics — over summaries of them. When sources disagree, say so rather
    than picking one silently.
+   If the issue asks about a GitHub pull request, use `get_pull_request` on the
+   URL returned by `get_assignment` or present in its discussion. This is the
+   authorized path for private repositories; do not try the public web first.
 4. **Post the findings** as a comment on the issue. This is the deliverable: it
    should stand on its own for someone who has not read your reasoning.
 5. **`finish_run`** — last, with a one or two sentence outcome.

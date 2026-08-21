@@ -20,6 +20,7 @@ export interface Viewer {
    organizationSlug: string;
    /** What the workspace is called, as opposed to what it is addressed by. */
    organizationName: string;
+   organizationRole: string;
    teamIds: string[];
 }
 
@@ -38,6 +39,7 @@ export async function getViewerState(): Promise<ViewerState> {
          id: t.organization.id,
          slug: t.organization.slug,
          name: t.organization.name,
+         role: t.member.role,
       })
       .from(t.member)
       .innerJoin(t.organization, eq(t.organization.id, t.member.organizationId))
@@ -67,9 +69,15 @@ export async function getViewerState(): Promise<ViewerState> {
          organizationId,
          organizationSlug: org.slug,
          organizationName: org.name,
+         organizationRole: org.role,
          teamIds: memberships.map((m) => m.teamId),
       },
    };
+}
+
+/** Workspace integrations affect every member and require an owner/admin. */
+export function canManageWorkspace(viewer: Viewer): boolean {
+   return viewer.organizationRole === 'owner' || viewer.organizationRole === 'admin';
 }
 
 export async function getViewer(): Promise<Viewer | null> {

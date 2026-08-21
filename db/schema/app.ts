@@ -15,6 +15,7 @@
  * lives in `db/schema/auth.ts`. This file only references those ids.
  */
 import {
+   bigint,
    boolean,
    date,
    index,
@@ -26,6 +27,7 @@ import {
    timestamp,
    uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { organization, team } from './auth';
 
 /* -------------------------------------------------------------------------- */
 /*                                  Shared                                    */
@@ -400,6 +402,75 @@ export const issuePullRequest = pgTable(
    },
    (t) => [index('issue_pull_request_issue_idx').on(t.issueId)]
 );
+
+/* -------------------------------------------------------------------------- */
+/*                              GitHub App                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One GitHub App installation connected to one Circle workspace.
+ *
+ * App credentials stay in the deployment environment. Only GitHub's opaque
+ * installation id is persisted, so a database leak is not an API credential.
+ */
+export const githubInstallation = pgTable(
+   'github_installation',
+   {
+      id: text('id').primaryKey(),
+      organizationId: text('organization_id')
+         .notNull()
+         .references(() => organization.id, { onDelete: 'cascade' }),
+      installationId: bigint('installation_id', { mode: 'number' }).notNull(),
+      accountId: bigint('account_id', { mode: 'number' }).notNull(),
+      accountLogin: text('account_login').notNull(),
+      accountType: text('account_type').notNull(),
+      repositorySelection: text('repository_selection').notNull(),
+      createdBy: text('created_by').notNull(),
+      suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+   },
+   (t) => [
+      uniqueIndex('github_installation_installation_uidx').on(t.installationId),
+      index('github_installation_org_idx').on(t.organizationId),
+   ]
+);
+
+/** Repositories currently granted to an installation, optionally assigned to a team. */
+export const githubRepository = pgTable(
+   'github_repository',
+   {
+      id: text('id').primaryKey(),
+      installationId: text('installation_id')
+         .notNull()
+         .references(() => githubInstallation.id, { onDelete: 'cascade' }),
+      githubRepositoryId: bigint('github_repository_id', { mode: 'number' }).notNull(),
+      owner: text('owner').notNull(),
+      name: text('name').notNull(),
+      fullName: text('full_name').notNull(),
+      htmlUrl: text('html_url').notNull(),
+      private: boolean('private').notNull(),
+      enabled: boolean('enabled').notNull().default(true),
+      teamId: text('team_id').references(() => team.id, { onDelete: 'set null' }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+   },
+   (t) => [
+      uniqueIndex('github_repository_installation_repo_uidx').on(
+         t.installationId,
+         t.githubRepositoryId
+      ),
+      index('github_repository_team_idx').on(t.teamId),
+      index('github_repository_full_name_idx').on(t.fullName),
+   ]
+);
+
+/** GitHub delivery ids make webhook handling idempotent across retries. */
+export const githubWebhookDelivery = pgTable('github_webhook_delivery', {
+   id: text('id').primaryKey(),
+   event: text('event').notNull(),
+   receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 /** Saved views. `filters` mirrors the shape the filter store already builds. */
 export const savedView = pgTable(

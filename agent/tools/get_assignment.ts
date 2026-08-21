@@ -21,6 +21,10 @@ export default defineTool({
          (page) => context.ablo.comment.list(page),
          (comment) => comment.issueId === context.issueId
       );
+      const pullRequests = await listAllWhere(
+         (page) => context.ablo.issuePullRequest.list(page),
+         (pullRequest) => pullRequest.issueId === context.issueId
+      );
 
       const states = await listAll((page) => context.ablo.workflowState.list(page));
       const status = states.find((state) => state.id === issue.statusId);
@@ -32,6 +36,11 @@ export default defineTool({
          status: status?.name ?? issue.statusId,
          availableStatuses: states.map((state) => state.name),
          request: context.prompt,
+         attachedPullRequests: pullRequests.map((pullRequest) => ({
+            url: pullRequest.url,
+            title: pullRequest.title,
+            state: pullRequest.state,
+         })),
          discussion: comments.map((comment) => ({
             author: comment.authorId,
             body: comment.body,

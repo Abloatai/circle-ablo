@@ -41,7 +41,7 @@ You need a **Neon** database (or any Postgres with logical replication) and an
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/Eagardh/circle-ablo.git
+git clone https://github.com/Abloatai/circle-ablo.git
 cd circle-ablo
 pnpm install
 ```
@@ -105,6 +105,12 @@ npx eve dev
 The agent needs credit on the [Vercel AI Gateway](https://vercel.com/) to
 complete a turn. Its tools, permissions and writes all work without one; the
 model call is what needs the balance.
+
+To let Scout inspect private pull requests, register a GitHub App for your
+deployment and connect it under **Settings → Integrations**. The app uses
+read-only pull-request permission, short-lived installation tokens, and an
+explicit repository-to-team mapping. See [DEPLOY.md](DEPLOY.md#3-register-the-github-app)
+for the exact URLs, permissions, events, and environment variables.
 
 ---
 

@@ -91,7 +91,7 @@ export function IssuePullRequests({ issueId, teamId }: { issueId: string; teamId
          const response = await fetch('/api/pull-requests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
+            body: JSON.stringify({ url, teamId }),
          });
          const body = (await response.json()) as {
             resolved?: boolean;

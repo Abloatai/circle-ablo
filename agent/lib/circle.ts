@@ -49,6 +49,7 @@ export async function loadRun(runId: string): Promise<RunContext> {
       can: {
          issue: ['read', 'update'],
          comment: ['read', 'create'],
+         issuePullRequest: ['read'],
          issueActivity: ['read', 'create'],
          agentRun: ['read', 'update'],
          agentMessage: ['read', 'create'],
