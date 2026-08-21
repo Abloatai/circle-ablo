@@ -42,7 +42,7 @@ export function CommentComposer({
       if (!text || !ablo) return;
       setPending(true);
       try {
-         await ablo.comment.create({
+         const comment = await ablo.comment.create({
             data: {
                id: crypto.randomUUID(),
                workspaceId: organizationId,
@@ -62,12 +62,30 @@ export function CommentComposer({
             type: 'comment',
             recipients: [...participants, ...subscribers, ...teamSubscribers],
          });
+         void notifyAssignedAgent(comment.id);
       } catch (error) {
          toast.error('Could not post the comment', {
             description: error instanceof Error ? error.message : undefined,
          });
       } finally {
          setPending(false);
+      }
+   }
+
+   async function notifyAssignedAgent(commentId: string) {
+      try {
+         const response = await fetch('/api/agent/comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ commentId }),
+         });
+
+         // 204 means this issue is not currently in an agent conversation.
+         if (!response.ok && response.status !== 204) throw new Error(await response.text());
+      } catch {
+         toast.warning('Comment posted, but the assigned agent could not be reached', {
+            description: 'Your comment is saved. You can try posting another reply shortly.',
+         });
       }
    }
 

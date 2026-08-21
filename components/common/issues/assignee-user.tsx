@@ -97,7 +97,14 @@ export function AssigneeUser({ user, issueId, teamId }: AssigneeUserProps) {
    return (
       <DropdownMenu open={open} onOpenChange={setOpen}>
          <DropdownMenuTrigger asChild>
-            <button className="relative w-fit focus:outline-none">
+            <button
+               aria-label={
+                  issueId
+                     ? `Change assignee${currentAssignee ? ` from ${currentAssignee.name}` : ''}`
+                     : `Assignee${currentAssignee ? `: ${currentAssignee.name}` : ''}`
+               }
+               className="relative w-fit focus:outline-none"
+            >
                {renderAvatar()}
                {currentAssignee && (
                   <span

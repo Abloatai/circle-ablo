@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Streamdown is loaded only for agent comments, but Tailwind still needs to
+   discover the component classes in the dependency's compiled source. */
+@source "../node_modules/streamdown/dist/*.js";
+
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));

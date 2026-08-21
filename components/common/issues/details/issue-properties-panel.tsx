@@ -49,7 +49,7 @@ export function IssuePropertiesPanel({ issue }: IssuePropertiesPanelProps) {
                   <span className="text-sm">{issue.priority.name}</span>
                </div>
                <div className="flex items-center gap-2 mt-0.5">
-                  <AssigneeUser user={issue.assignee} />
+                  <AssigneeUser user={issue.assignee} issueId={issue.id} teamId={issue.teamId} />
                   <span className="text-sm">{issue.assignee ? issue.assignee.name : 'Assign'}</span>
                </div>
                {cycle && (

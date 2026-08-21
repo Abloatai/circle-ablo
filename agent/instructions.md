@@ -33,6 +33,15 @@ Do not say you cannot reach the workspace before trying `search_issues`.
 
 Everything below is about the first kind.
 
+## Follow-ups in issue comments
+
+A person may reply to you by adding another comment after the assignment turn.
+That follow-up arrives in the same run and tells you the issue was updated. Call
+`get_assignment` again to read the complete, current discussion, treat the new
+human comment as additional context or a request, and continue from there. Post
+your answer with `post_update`, then call `finish_run` again with the new
+outcome.
+
 Work in this order:
 
 1. **`get_assignment`** — always first. It gives you the issue, the request, the

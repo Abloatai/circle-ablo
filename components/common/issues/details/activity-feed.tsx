@@ -16,6 +16,7 @@ import {
    Unlock,
 } from 'lucide-react';
 import { ReactNode, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
    DropdownMenu,
    DropdownMenuContent,
@@ -29,6 +30,11 @@ import { ContentBlocks } from './content-blocks';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useCommentActions } from '@/hooks/use-comment-actions';
 import { blocksToMarkdown, markdownToBlocks } from '@/lib/data/content-blocks';
+
+// Streamdown carries the full Markdown parser and is only needed for agent
+// comments. Keep it out of the initial issue-detail bundle when a discussion
+// contains only people.
+const AgentComment = dynamic(() => import('./agent-comment').then((module) => module.AgentComment));
 
 const EVENT_ICONS: Record<string, ReactNode> = {
    created: <PenLine className="size-3.5" />,
@@ -139,7 +145,11 @@ function CommentCard({ item }: { item: Extract<ActivityItem, { kind: 'comment' }
             </div>
          ) : (
             <div className="text-sm [&_p]:my-1.5">
-               <ContentBlocks blocks={item.body} />
+               {item.actor.role === 'Application' ? (
+                  <AgentComment blocks={item.body} />
+               ) : (
+                  <ContentBlocks blocks={item.body} />
+               )}
             </div>
          )}
          <div className="flex items-center gap-1.5 mt-1">

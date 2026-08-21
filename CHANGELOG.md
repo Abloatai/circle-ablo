@@ -12,6 +12,35 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.3]
+
+This release makes an assigned agent something you can talk to: reply in the
+issue comments and the run you already have picks the conversation back up.
+
+### Added
+
+- **A comment on an issue an agent is assigned to reaches the agent.** Posting a
+  reply wakes its session and asks it to read the discussion again, so a
+  follow-up question or a correction lands in the run that is already open
+  instead of needing a fresh assignment. The comment stays the source of truth:
+  the route takes a comment id, re-reads it under your workspace and team, and
+  never trusts text from the browser. Only the latest run resumes, and a failed
+  or canceled one is left alone.
+
+### Changed
+
+- **Agent comments render as Markdown.** The agent writes headings, lists and
+  code fences, and the activity feed flattened them into one run of text.
+  Images and raw HTML are disallowed and links are checked, because agent output
+  is untrusted text. The renderer is loaded only when an agent has commented, so
+  a discussion between people does not pay for it.
+
+### Fixed
+
+- **The assignee avatar in the issue properties panel could not assign.** It
+  opened a picker with no issue or team to write to, so every choice was
+  discarded — including picking an agent, which is how a run gets dispatched.
+
 ## [0.5.2]
 
 This release updates Circle to Ablo 0.56 and tightens the boundaries between
@@ -280,7 +309,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-ablo/compare/v0.5.2...HEAD
+[unreleased]: https://github.com/Eagardh/circle-ablo/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.3
 [0.5.2]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.0
