@@ -543,6 +543,7 @@ export function useIssueDetail(identifier: string): {
                   event: row.type,
                   text: payload.text ?? row.type,
                   timeAgo: `${formatDistanceToNowStrict(at)} ago`,
+                  payload,
                },
             };
          });

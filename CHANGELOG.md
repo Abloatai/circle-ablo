@@ -12,6 +12,33 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.6]
+
+The agent can ask for a pull request to be merged. It cannot merge one.
+
+### Added
+
+- **`request_pull_request_merge` writes an approval card into the issue.** Scout
+  inspects the pull request, pins the head SHA it read, and stops there. A
+  workspace owner or admin sees the repository, the merge method and the exact
+  commit in the activity feed, and approves it in Circle — that click is what
+  calls GitHub.
+- **Approvals are pinned to a revision.** GitHub is asked to merge that SHA, so
+  a push landing between the request and the approval fails the merge instead of
+  shipping code nobody read. The card records who approved it and the resulting
+  commit.
+
+### Changed
+
+- **The GitHub App needs Contents: read and write** for merges. Inspection alone
+  does not — leave the permission off and the rest of the integration works
+  unchanged, which `DEPLOY.md` now spells out. Branch protections and rules
+  still apply: Circle asks GitHub to merge, it does not override it.
+- **A merge card is only honoured if Circle signed it.** The card carries an
+  HMAC keyed by `AGENT_CHANNEL_SECRET`, and approving one sends only its id —
+  the pull request, team, method and SHA are re-read from the workspace's own
+  record rather than from the browser.
+
 ## [0.5.5]
 
 Circle talks to GitHub through a GitHub App. Pull request links resolve in
@@ -389,7 +416,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.5.5...HEAD
+[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.6
 [0.5.5]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.5
 [0.5.4]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.4
 [0.5.3]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.3

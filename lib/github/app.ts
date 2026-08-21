@@ -3,6 +3,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import * as t from '@/db/schema';
 import { getGitHubAppConfig } from './config';
+import type { GitHubMergeMethod } from './merge-request';
 import { parseGitHubPullRequestUrl } from './pull-request-url';
 
 const API = 'https://api.github.com';
@@ -83,9 +84,10 @@ export async function installationToken(installationId: number): Promise<string>
 
 export async function githubInstallationRequest<T>(
    installationId: number,
-   path: string
+   path: string,
+   init: Omit<RequestInit, 'headers'> & { headers?: Record<string, string> } = {}
 ): Promise<T> {
-   return request<T>(path, await installationToken(installationId));
+   return request<T>(path, await installationToken(installationId), init);
 }
 
 interface GitHubInstallationPayload {
@@ -229,6 +231,7 @@ export interface GitHubPullRequestInspection {
    author: string;
    baseBranch: string;
    headBranch: string;
+   headSha: string;
    additions: number;
    deletions: number;
    changedFiles: number;
@@ -243,15 +246,11 @@ export interface GitHubPullRequestInspection {
    truncated: boolean;
 }
 
-export async function inspectPullRequest(input: {
+async function connectedInstallationForRepository(input: {
    organizationId: string;
    teamId: string;
-   url: string;
-}): Promise<GitHubPullRequestInspection> {
-   const coordinates = parseGitHubPullRequestUrl(input.url);
-   if (!coordinates) throw new Error('That is not a GitHub pull request URL');
-   const fullName = `${coordinates.owner}/${coordinates.repository}`;
-
+   fullName: string;
+}): Promise<number> {
    const [connected] = await db
       .select({ installationId: t.githubInstallation.installationId })
       .from(t.githubRepository)
@@ -264,7 +263,7 @@ export async function inspectPullRequest(input: {
             eq(t.githubInstallation.organizationId, input.organizationId),
             isNull(t.githubInstallation.suspendedAt),
             eq(t.githubRepository.enabled, true),
-            eq(sql`lower(${t.githubRepository.fullName})`, fullName.toLowerCase()),
+            eq(sql`lower(${t.githubRepository.fullName})`, input.fullName.toLowerCase()),
             eq(t.githubRepository.teamId, input.teamId)
          )
       )
@@ -272,6 +271,23 @@ export async function inspectPullRequest(input: {
    if (!connected) {
       throw new Error('That repository is not enabled for this Circle team');
    }
+   return connected.installationId;
+}
+
+export async function inspectPullRequest(input: {
+   organizationId: string;
+   teamId: string;
+   url: string;
+}): Promise<GitHubPullRequestInspection> {
+   const coordinates = parseGitHubPullRequestUrl(input.url);
+   if (!coordinates) throw new Error('That is not a GitHub pull request URL');
+   const fullName = `${coordinates.owner}/${coordinates.repository}`;
+
+   const installationId = await connectedInstallationForRepository({
+      organizationId: input.organizationId,
+      teamId: input.teamId,
+      fullName,
+   });
 
    const path = `/repos/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repository)}/pulls/${coordinates.number}`;
    const [pull, files, commits] = await Promise.all([
@@ -284,11 +300,11 @@ export async function inspectPullRequest(input: {
          merged_at: string | null;
          user: { login: string };
          base: { ref: string };
-         head: { ref: string };
+         head: { ref: string; sha: string };
          additions: number;
          deletions: number;
          changed_files: number;
-      }>(connected.installationId, path),
+      }>(installationId, path),
       githubInstallationRequest<
          Array<{
             filename: string;
@@ -297,10 +313,10 @@ export async function inspectPullRequest(input: {
             deletions: number;
             patch?: string;
          }>
-      >(connected.installationId, `${path}/files?per_page=100`),
+      >(installationId, `${path}/files?per_page=100`),
       githubInstallationRequest<
          Array<{ sha: string; commit: { message: string; author: { name: string } | null } }>
-      >(connected.installationId, `${path}/commits?per_page=100`),
+      >(installationId, `${path}/commits?per_page=100`),
    ]);
 
    let remainingPatchCharacters = 120_000;
@@ -328,6 +344,7 @@ export async function inspectPullRequest(input: {
       author: pull.user.login,
       baseBranch: pull.base.ref,
       headBranch: pull.head.ref,
+      headSha: pull.head.sha,
       additions: pull.additions,
       deletions: pull.deletions,
       changedFiles: pull.changed_files,
@@ -338,5 +355,85 @@ export async function inspectPullRequest(input: {
       })),
       files: boundedFiles,
       truncated,
+   };
+}
+
+export interface GitHubPullRequestMergeResult {
+   merged: boolean;
+   alreadyMerged: boolean;
+   sha: string;
+   message: string;
+}
+
+/**
+ * Merge exactly the revision a person approved.
+ *
+ * Repository authorization is repeated here rather than inherited from the
+ * agent's earlier inspection, and GitHub receives the pinned head SHA so a
+ * newly pushed commit makes the operation fail closed.
+ */
+export async function mergePullRequest(input: {
+   organizationId: string;
+   teamId: string;
+   url: string;
+   expectedHeadSha: string;
+   mergeMethod: GitHubMergeMethod;
+}): Promise<GitHubPullRequestMergeResult> {
+   const coordinates = parseGitHubPullRequestUrl(input.url);
+   if (!coordinates) throw new Error('That is not a GitHub pull request URL');
+   if (!/^[0-9a-f]{40}$/i.test(input.expectedHeadSha)) {
+      throw new Error('The approved pull request revision is invalid');
+   }
+
+   const installationId = await connectedInstallationForRepository({
+      organizationId: input.organizationId,
+      teamId: input.teamId,
+      fullName: `${coordinates.owner}/${coordinates.repository}`,
+   });
+   const path = `/repos/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repository)}/pulls/${coordinates.number}`;
+   const pull = await githubInstallationRequest<{
+      state: string;
+      draft: boolean;
+      merged_at: string | null;
+      merge_commit_sha: string | null;
+      head: { sha: string };
+   }>(installationId, path);
+
+   if (pull.merged_at) {
+      return {
+         merged: true,
+         alreadyMerged: true,
+         sha: pull.merge_commit_sha ?? pull.head.sha,
+         message: 'Pull request was already merged.',
+      };
+   }
+   if (pull.state !== 'open') throw new Error('The pull request is not open');
+   if (pull.draft) throw new Error('Draft pull requests cannot be merged');
+   if (pull.head.sha.toLowerCase() !== input.expectedHeadSha.toLowerCase()) {
+      throw new GitHubApiError(
+         'The pull request changed after approval was requested. Ask Scout to inspect it again.',
+         409
+      );
+   }
+
+   const result = await githubInstallationRequest<{
+      sha: string;
+      merged: boolean;
+      message: string;
+   }>(installationId, `${path}/merge`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+         sha: input.expectedHeadSha,
+         merge_method: input.mergeMethod,
+      }),
+   });
+   if (!result.merged) throw new Error(result.message || 'GitHub did not merge the pull request');
+
+   return {
+      merged: true,
+      alreadyMerged: false,
+      sha: result.sha,
+      message: result.message,
    };
 }

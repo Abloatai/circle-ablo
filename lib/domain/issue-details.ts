@@ -38,6 +38,8 @@ export type ActivityItem =
         event: string;
         text: string;
         timeAgo: string;
+        /** Structured event details used by specialized activity cards. */
+        payload?: Record<string, unknown>;
      }
    | {
         kind: 'comment';

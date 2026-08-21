@@ -30,6 +30,11 @@ import { ContentBlocks } from './content-blocks';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useCommentActions } from '@/hooks/use-comment-actions';
 import { blocksToMarkdown, markdownToBlocks } from '@/lib/data/content-blocks';
+import {
+   GITHUB_MERGE_REQUEST_KIND,
+   parseGitHubMergeRequestPayload,
+} from '@/lib/github/merge-request';
+import { GitHubMergeRequestCard } from './github-merge-request-card';
 
 // Streamdown carries the full Markdown parser and is only needed for agent
 // comments. Keep it out of the initial issue-detail bundle when a discussion
@@ -49,6 +54,20 @@ const EVENT_ICONS: Record<string, ReactNode> = {
 };
 
 function EventRow({ item }: { item: Extract<ActivityItem, { kind: 'event' }> }) {
+   if (item.event === GITHUB_MERGE_REQUEST_KIND) {
+      const payload = parseGitHubMergeRequestPayload(item.payload);
+      if (payload) {
+         return (
+            <GitHubMergeRequestCard
+               activityId={item.id}
+               actorName={item.actor.name}
+               timeAgo={item.timeAgo}
+               payload={payload}
+            />
+         );
+      }
+   }
+
    return (
       <div className="flex items-center gap-2.5 text-sm text-muted-foreground py-1.5">
          <span className="size-5 rounded-full bg-accent flex items-center justify-center shrink-0">

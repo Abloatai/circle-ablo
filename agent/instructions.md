@@ -56,6 +56,10 @@ Work in this order:
    If the issue asks about a GitHub pull request, use `get_pull_request` on the
    URL returned by `get_assignment` or present in its discussion. This is the
    authorized path for private repositories; do not try the public web first.
+   If a person explicitly asks you to merge it, inspect it first, then use
+   `request_pull_request_merge`. That tool only creates a SHA-pinned approval
+   request; never claim the pull request is merged before Circle reports the
+   approved result. Never request a merge merely because the changes look good.
 4. **Post the findings** as a comment on the issue. This is the deliverable: it
    should stand on its own for someone who has not read your reasoning.
 5. **`finish_run`** — last, with a one or two sentence outcome.

@@ -106,11 +106,12 @@ The agent needs credit on the [Vercel AI Gateway](https://vercel.com/) to
 complete a turn. Its tools, permissions and writes all work without one; the
 model call is what needs the balance.
 
-To let Scout inspect private pull requests, register a GitHub App for your
-deployment and connect it under **Settings → Integrations**. The app uses
-read-only pull-request permission, short-lived installation tokens, and an
-explicit repository-to-team mapping. See [DEPLOY.md](DEPLOY.md#3-register-the-github-app)
-for the exact URLs, permissions, events, and environment variables.
+To let Scout inspect private pull requests and request admin-approved merges,
+register a GitHub App for your deployment and connect it under **Settings →
+Integrations**. The app uses short-lived installation tokens, an explicit
+repository-to-team mapping, and SHA-pinned merge approvals in the issue feed.
+See [DEPLOY.md](DEPLOY.md#3-register-the-github-app) for the exact URLs,
+least-privilege permissions, events, and environment variables.
 
 ---
 

@@ -95,7 +95,10 @@ with the deployment origin:
   Circle's signed setup state)
 - Webhook URL: `https://circle.example/api/github/webhook`
 - Webhook secret: a new high-entropy value
-- Repository permissions: **Metadata: read-only** and **Pull requests: read-only**
+- Repository permissions: **Metadata: read-only**, **Pull requests: read-only**,
+  and **Contents: read and write**. Contents write is used only after a
+  workspace admin approves a SHA-pinned merge request in Circle. Leave it off
+  if this deployment should support inspection without merging.
 - Subscribe to events: **Installation**, **Installation repositories**, and
   **Pull request**
 
@@ -113,6 +116,13 @@ After deploying, a workspace admin opens **Settings → Integrations**, connects
 GitHub, and maps each repository to a Circle team. An unassigned or disabled
 repository is unavailable to agents even if the GitHub installation can access
 it.
+
+Scout can inspect linked pull requests with `get_pull_request`. When a person
+explicitly asks for a merge, `request_pull_request_merge` creates an approval
+card in the issue activity feed. It does not merge on its own: a workspace
+admin must confirm the repository, merge method, and pinned head SHA. Circle
+then calls GitHub, which still enforces the repository's branch protections and
+rules.
 
 GitHub's registration, setup-URL, and webhook-signature references:
 
