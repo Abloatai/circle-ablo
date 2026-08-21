@@ -1,4 +1,4 @@
-# Circle
+# Circle (Ablo)
 
 An issue tracker where people and agents work on the same data, in real time.
 
@@ -41,8 +41,8 @@ You need a **Neon** database (or any Postgres with logical replication) and an
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/Eagardh/circle.git
-cd circle
+git clone https://github.com/Eagardh/circle-ablo.git
+cd circle-ablo
 pnpm install
 ```
 

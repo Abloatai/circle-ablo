@@ -280,11 +280,11 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle/compare/v0.5.2...HEAD
-[0.5.2]: https://github.com/Eagardh/circle/releases/tag/v0.5.2
-[0.5.1]: https://github.com/Eagardh/circle/releases/tag/v0.5.1
-[0.5.0]: https://github.com/Eagardh/circle/releases/tag/v0.5.0
-[0.4.0]: https://github.com/Eagardh/circle/releases/tag/v0.4.0
-[0.3.0]: https://github.com/Eagardh/circle/releases/tag/v0.3.0
-[0.2.0]: https://github.com/Eagardh/circle/releases/tag/v0.2.0
-[0.1.0]: https://github.com/Eagardh/circle/releases/tag/v0.1.0
+[unreleased]: https://github.com/Eagardh/circle-ablo/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.2
+[0.5.1]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.1
+[0.5.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.5.0
+[0.4.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.4.0
+[0.3.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.3.0
+[0.2.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.2.0
+[0.1.0]: https://github.com/Eagardh/circle-ablo/releases/tag/v0.1.0
