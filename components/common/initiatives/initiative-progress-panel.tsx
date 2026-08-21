@@ -103,7 +103,7 @@ export function InitiativeProgressPanel({ initiative }: { initiative: Initiative
             count: projects.filter((project) => project.health.id === entry.id).length,
          }))
          .filter((row) => row.count > 0);
-   }, [tab, projects]);
+   }, [tab, projects, teams]);
 
    return (
       <div className="flex flex-col gap-3">

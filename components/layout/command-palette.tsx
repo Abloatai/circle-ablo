@@ -139,7 +139,7 @@ export function CommandPalette() {
    const close = useCallback(() => {
       setOpen(false);
       reset();
-   }, [reset, openModal]);
+   }, [reset]);
 
    // ⌘K / Ctrl+K
    useEffect(() => {
@@ -167,7 +167,7 @@ export function CommandPalette() {
       };
       window.addEventListener('keydown', onKeyDown);
       return () => window.removeEventListener('keydown', onKeyDown);
-   }, [reset]);
+   }, [reset, openModal]);
 
    const copy = useCallback(
       async (label: string, text: string) => {

@@ -21,3 +21,7 @@ minimumReleaseAgeExclude:
   - '@abloatai/humans@0.55.0'
   - '@abloatai/transaction@0.55.0'
   - '@abloatai/cli@0.55.0'
+  - '@abloatai/ablo@0.56.0'
+  - '@abloatai/humans@0.56.0'
+  - '@abloatai/transaction@0.56.0'
+  - '@abloatai/cli@0.56.0'

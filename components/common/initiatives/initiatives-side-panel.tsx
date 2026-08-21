@@ -70,7 +70,7 @@ export function InitiativesSidePanel({ initiatives }: { initiatives: Initiative[
          }))
          .filter((row) => row.count > 0)
          .sort((a, b) => b.count - a.count);
-   }, [tab, initiatives]);
+   }, [tab, initiatives, allProjects, teams]);
 
    return (
       <aside className="hidden lg:flex flex-col w-72 shrink-0 border-l h-full overflow-y-auto bg-container p-4 gap-4">

@@ -70,7 +70,7 @@ test('a favourite belongs to one person only', async ({ alice, bob, who }) => {
    await settle(alice, 6000);
    await settle(bob, 6000);
 
-   const trigger = await openIssueMenu(alice);
+   await openIssueMenu(alice);
    const starred = (await menuItem(alice, 'Unfavorite').count()) > 0;
    await (starred ? menuItem(alice, 'Unfavorite') : menuItem(alice, 'Favorite')).click();
    await settle(alice);

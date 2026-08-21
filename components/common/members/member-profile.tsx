@@ -122,7 +122,7 @@ export default function MemberProfile({ member }: { member: User }) {
          return issues.filter((issue) => issueCreatorIndex(issue, users.length) === memberIndex);
       }
       return issues.filter((issue) => issue.assignee?.id === member.id);
-   }, [issues, activeTab, member.id, memberIndex]);
+   }, [issues, activeTab, member.id, memberIndex, users.length]);
 
    const displayedIssues = useMemo(
       () => applyIssueFilters(scopedIssues, filters),
@@ -131,7 +131,7 @@ export default function MemberProfile({ member }: { member: User }) {
 
    const memberTeams = useMemo(
       () => teams.filter((team) => member.teamIds.includes(team.id)),
-      [member.teamIds]
+      [member.teamIds, teams]
    );
 
    const memberProjects = useMemo(() => {
@@ -146,7 +146,7 @@ export default function MemberProfile({ member }: { member: User }) {
          return true;
       });
       return merged;
-   }, [displayedIssues, member.id]);
+   }, [displayedIssues, member.id, projects]);
 
    const labelRows = useMemo<BreakdownRow[]>(() => {
       const counts = countBy(displayedIssues, (issue) => issue.labels.map((label) => label.id));
@@ -164,7 +164,7 @@ export default function MemberProfile({ member }: { member: User }) {
             count: counts.get(label.id) ?? 0,
          }))
          .sort((a, b) => b.count - a.count);
-   }, [displayedIssues]);
+   }, [displayedIssues, labels]);
 
    const priorityRows = useMemo<BreakdownRow[]>(() => {
       const counts = countBy(displayedIssues, (issue) => [issue.priority.id]);
@@ -190,7 +190,7 @@ export default function MemberProfile({ member }: { member: User }) {
             count: counts.get(project.id) ?? 0,
          }))
          .sort((a, b) => b.count - a.count);
-   }, [displayedIssues]);
+   }, [displayedIssues, projects]);
 
    const teamRows = useMemo<BreakdownRow[]>(
       () =>

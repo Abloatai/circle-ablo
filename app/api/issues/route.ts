@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import * as t from '@/db/schema';
 import { sync } from '@/ablo';
@@ -55,6 +55,9 @@ export async function POST(request: Request): Promise<Response> {
       );
    }
 
+   const relationError = await validateRelations(body, teamId, viewer.organizationId);
+   if (relationError) return Response.json({ error: relationError }, { status: 400 });
+
    const number = await nextIssueNumber(teamId, viewer.organizationId);
 
    await sync.ready();
@@ -80,6 +83,101 @@ export async function POST(request: Request): Promise<Response> {
    });
 
    return Response.json({ id: created.id, identifier: `${team.key}-${number}` });
+}
+
+async function validateRelations(
+   body: {
+      statusId?: string;
+      assigneeId?: string | null;
+      projectId?: string | null;
+      cycleId?: string | null;
+      parentIssueId?: string | null;
+      labelIds?: string[];
+   },
+   teamId: string,
+   organizationId: string
+): Promise<string | null> {
+   const labelIds = [...new Set(body.labelIds ?? [])];
+   const [status, assignee, project, cycle, parent, labels] = await Promise.all([
+      db
+         .select({ id: t.workflowState.id })
+         .from(t.workflowState)
+         .where(
+            and(
+               eq(t.workflowState.id, body.statusId!),
+               eq(t.workflowState.organizationId, organizationId),
+               or(isNull(t.workflowState.teamId), eq(t.workflowState.teamId, teamId))
+            )
+         )
+         .limit(1),
+      body.assigneeId
+         ? db
+              .select({ id: t.teamMember.userId })
+              .from(t.teamMember)
+              .innerJoin(
+                 t.member,
+                 and(
+                    eq(t.member.userId, t.teamMember.userId),
+                    eq(t.member.organizationId, organizationId)
+                 )
+              )
+              .where(and(eq(t.teamMember.teamId, teamId), eq(t.teamMember.userId, body.assigneeId)))
+              .limit(1)
+         : Promise.resolve([]),
+      body.projectId
+         ? db
+              .select({ id: t.project.id })
+              .from(t.project)
+              .where(
+                 and(
+                    eq(t.project.id, body.projectId),
+                    eq(t.project.organizationId, organizationId),
+                    eq(t.project.teamId, teamId)
+                 )
+              )
+              .limit(1)
+         : Promise.resolve([]),
+      body.cycleId
+         ? db
+              .select({ id: t.cycle.id })
+              .from(t.cycle)
+              .where(
+                 and(
+                    eq(t.cycle.id, body.cycleId),
+                    eq(t.cycle.organizationId, organizationId),
+                    eq(t.cycle.teamId, teamId)
+                 )
+              )
+              .limit(1)
+         : Promise.resolve([]),
+      body.parentIssueId
+         ? db
+              .select({ id: t.issue.id })
+              .from(t.issue)
+              .where(
+                 and(
+                    eq(t.issue.id, body.parentIssueId),
+                    eq(t.issue.organizationId, organizationId),
+                    eq(t.issue.teamId, teamId)
+                 )
+              )
+              .limit(1)
+         : Promise.resolve([]),
+      labelIds.length
+         ? db
+              .select({ id: t.label.id })
+              .from(t.label)
+              .where(and(eq(t.label.organizationId, organizationId), inArray(t.label.id, labelIds)))
+         : Promise.resolve([]),
+   ]);
+
+   if (!status.length) return 'That status is not available to this team';
+   if (body.assigneeId && !assignee.length) return 'That assignee is not on this team';
+   if (body.projectId && !project.length) return 'That project is not on this team';
+   if (body.cycleId && !cycle.length) return 'That cycle is not on this team';
+   if (body.parentIssueId && !parent.length) return 'That parent issue is not on this team';
+   if (labels.length !== labelIds.length) return 'One or more labels are not in this workspace';
+   return null;
 }
 
 /** Claims the next number for a team, creating the counter on first use. */

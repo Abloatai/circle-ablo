@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useAblo } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
+const EMPTY_ROWS: never[] = [];
+
 /** What can be starred. Matches the enum in `ablo/schema.ts`. */
 export type FavoriteEntityType = 'issue' | 'project' | 'cycle' | 'document' | 'view' | 'team';
 
@@ -24,7 +26,7 @@ export interface FavoriteRow {
  * nobody else's favourites reach this client.
  */
 export function useFavorites(): FavoriteRow[] {
-   const rows = useAblo((ablo) => ablo.favorite.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.favorite.local.list({})) ?? EMPTY_ROWS;
    const { viewerId } = useWorkspace();
 
    return useMemo(

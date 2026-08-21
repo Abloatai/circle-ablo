@@ -82,7 +82,7 @@ export function BreakdownPanel({ issues }: { issues: Issue[] }) {
          }
       }
       return [...counter.values()].sort((a, b) => b.count - a.count);
-   }, [tab, issues]);
+   }, [tab, issues, teams]);
 
    return (
       <div className="w-full h-full overflow-y-auto p-4 flex flex-col gap-4">

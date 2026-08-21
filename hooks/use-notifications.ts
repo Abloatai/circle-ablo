@@ -7,6 +7,8 @@ import { useAblo } from '@/lib/ablo';
 import { useIssues } from '@/hooks/use-workspace-data';
 import type { InboxItem, NotificationType } from '@/lib/domain/inbox';
 
+const EMPTY_ROWS: never[] = [];
+
 /**
  * The signed-in person's inbox.
  *
@@ -21,7 +23,8 @@ export function useNotifications() {
    const { membersById, viewerId } = useWorkspace();
 
    const rows =
-      useAblo((client) => client.notification.local.list({ where: { userId: viewerId } })) ?? [];
+      useAblo((client) => client.notification.local.list({ where: { userId: viewerId } })) ??
+      EMPTY_ROWS;
 
    const notifications = useMemo<InboxItem[]>(() => {
       const issuesById = new Map(issues.map((issue) => [issue.id, issue]));

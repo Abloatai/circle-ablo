@@ -40,7 +40,7 @@ export default function Members() {
       };
 
       return list.sort(compare);
-   }, [filters, sort]);
+   }, [allUsers, filters, sort]);
 
    return (
       <div className="w-full">

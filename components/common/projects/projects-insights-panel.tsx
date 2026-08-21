@@ -98,7 +98,7 @@ export default function ProjectsInsightsPanel({ projects }: ProjectsInsightsPane
             }))
             .filter((row) => row.count > 0)
             .sort((a, b) => b.count - a.count),
-      [projects]
+      [projects, teams]
    );
 
    const leadRows = useMemo<CountRow[]>(
@@ -117,7 +117,7 @@ export default function ProjectsInsightsPanel({ projects }: ProjectsInsightsPane
             }))
             .filter((row) => row.count > 0)
             .sort((a, b) => b.count - a.count),
-      [projects]
+      [projects, users]
    );
 
    return (

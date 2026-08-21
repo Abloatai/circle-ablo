@@ -33,24 +33,21 @@ export async function getViewerState(): Promise<ViewerState> {
    const session = await auth.api.getSession({ headers: await headers() });
    if (!session?.user) return { kind: 'anonymous' };
 
-   // The active organization is normally set on the session; fall back to the
-   // membership so a returning member lands somewhere rather than nowhere.
-   let organizationId = session.session.activeOrganizationId ?? null;
-   if (!organizationId) {
-      const [membership] = await db
-         .select({ organizationId: t.member.organizationId })
-         .from(t.member)
-         .where(eq(t.member.userId, session.user.id))
-         .limit(1);
-      organizationId = membership?.organizationId ?? null;
-   }
-   if (!organizationId) return { kind: 'no-workspace', userId: session.user.id };
-
-   const [org] = await db
-      .select({ slug: t.organization.slug, name: t.organization.name })
-      .from(t.organization)
-      .where(eq(t.organization.id, organizationId))
-      .limit(1);
+   const organizations = await db
+      .select({
+         id: t.organization.id,
+         slug: t.organization.slug,
+         name: t.organization.name,
+      })
+      .from(t.member)
+      .innerJoin(t.organization, eq(t.organization.id, t.member.organizationId))
+      .where(eq(t.member.userId, session.user.id));
+   const activeOrganizationId = session.session.activeOrganizationId;
+   const org =
+      organizations.find((organization) => organization.id === activeOrganizationId) ??
+      organizations[0];
+   if (!org) return { kind: 'no-workspace', userId: session.user.id };
+   const organizationId = org.id;
 
    const memberships = await db
       .select({ teamId: t.teamMember.teamId })
@@ -68,8 +65,8 @@ export async function getViewerState(): Promise<ViewerState> {
          email: session.user.email,
          image: session.user.image ?? null,
          organizationId,
-         organizationSlug: org?.slug ?? organizationId,
-         organizationName: org?.name ?? org?.slug ?? organizationId,
+         organizationSlug: org.slug,
+         organizationName: org.name,
          teamIds: memberships.map((m) => m.teamId),
       },
    };

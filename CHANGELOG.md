@@ -12,6 +12,27 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.2]
+
+This release updates Circle to Ablo 0.56 and tightens the boundaries between
+workspaces and teams.
+
+### Fixed
+
+- **Workspace membership is checked wherever a session, issue or agent run
+  crosses a boundary.** A stale active workspace can no longer select an
+  organization the viewer has left; issue creation rejects statuses, assignees,
+  projects, cycles, parent issues and labels from outside the active workspace
+  or team; and chat and dispatch only select agents that belong to that team.
+- **Browser sessions can no longer create agent runs or messages directly.**
+  Those records are created by the server routes that validate the viewer,
+  workspace and team first.
+
+### Changed
+
+- **Ablo is upgraded from 0.55 to 0.56.0.** The runtime, CLI and Humans package
+  are pinned to the same version, with the lockfile updated alongside them.
+
 ## [0.5.1]
 
 Ablo calls itself "claim, change, confirm". This codebase did the change part
@@ -259,7 +280,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.5.1...HEAD
+[unreleased]: https://github.com/Eagardh/circle-powered-by-ablo/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Eagardh/circle-powered-by-ablo/releases/tag/v0.4.0

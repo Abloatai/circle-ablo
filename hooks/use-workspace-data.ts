@@ -24,6 +24,8 @@ import type { Team } from '@/lib/domain/teams';
 import type { View, ViewFilter, ViewType } from '@/lib/domain/views';
 import type { Cycle } from '@/lib/domain/cycles';
 
+const EMPTY_ROWS: never[] = [];
+
 /**
  * Live workspace data, in the shapes the existing views expect.
  *
@@ -33,12 +35,13 @@ import type { Cycle } from '@/lib/domain/cycles';
  */
 export function useStatuses(): Status[] {
    const rows =
-      useAblo((ablo) => ablo.workflowState.local.list({ orderBy: { position: 'asc' } })) ?? [];
+      useAblo((ablo) => ablo.workflowState.local.list({ orderBy: { position: 'asc' } })) ??
+      EMPTY_ROWS;
    return useMemo(() => rows.map(hydrateStatus), [rows]);
 }
 
 export function useLabels(): LabelInterface[] {
-   const rows = useAblo((ablo) => ablo.label.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.label.local.list({})) ?? EMPTY_ROWS;
    return useMemo(
       () =>
          rows.map((row) => ({
@@ -64,7 +67,7 @@ export function useApplicableLabels(): LabelInterface[] {
 }
 
 export function useProjects(): Project[] {
-   const rows = useAblo((ablo) => ablo.project.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.project.local.list({})) ?? EMPTY_ROWS;
    const statuses = useStatuses();
    const { membersById } = useWorkspace();
 
@@ -84,7 +87,7 @@ export function useProjects(): Project[] {
  * also means moving a project into an initiative updates both views at once.
  */
 export function useInitiatives(): Initiative[] {
-   const rows = useAblo((ablo) => ablo.initiative.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.initiative.local.list({})) ?? EMPTY_ROWS;
    const projects = useProjects();
    const { membersById } = useWorkspace();
 
@@ -114,7 +117,7 @@ export interface ResourceItem {
 
 /** A project's milestones, in the order they were put in. */
 export function useProjectMilestones(projectId: string): MilestoneItem[] {
-   const rows = useAblo((ablo) => ablo.projectMilestone.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.projectMilestone.local.list({})) ?? EMPTY_ROWS;
 
    return useMemo(
       () =>
@@ -135,7 +138,7 @@ export function useProjectMilestones(projectId: string): MilestoneItem[] {
 
 /** A project's linked resources — specs, designs, dashboards. */
 export function useProjectResources(projectId: string): ResourceItem[] {
-   const rows = useAblo((ablo) => ablo.projectResource.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.projectResource.local.list({})) ?? EMPTY_ROWS;
 
    return useMemo(
       () =>
@@ -179,8 +182,8 @@ export interface AgentChatItem {
  * writes it and a teammate watching the same chat sees it too.
  */
 export function useAgentChats(): AgentChatItem[] {
-   const runRows = useAblo((ablo) => ablo.agentRun.local.list({})) ?? [];
-   const messageRows = useAblo((ablo) => ablo.agentMessage.local.list({})) ?? [];
+   const runRows = useAblo((ablo) => ablo.agentRun.local.list({})) ?? EMPTY_ROWS;
+   const messageRows = useAblo((ablo) => ablo.agentMessage.local.list({})) ?? EMPTY_ROWS;
    const { membersById } = useWorkspace();
 
    return useMemo(() => {
@@ -241,7 +244,7 @@ export function useAgentChats(): AgentChatItem[] {
  * issue view with no filter, which shows everything rather than nothing.
  */
 export function useSavedViews(): View[] {
-   const rows = useAblo((ablo) => ablo.savedView.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.savedView.local.list({})) ?? EMPTY_ROWS;
    const { membersById } = useWorkspace();
 
    return useMemo(
@@ -323,8 +326,8 @@ export interface DocumentFolderItem {
 export const UNFILED_FOLDER_ID = '';
 
 export function useTeamDocuments(teamId: string): DocumentFolderItem[] {
-   const documentRows = useAblo((ablo) => ablo.document.local.list({})) ?? [];
-   const folderRows = useAblo((ablo) => ablo.documentFolder.local.list({})) ?? [];
+   const documentRows = useAblo((ablo) => ablo.document.local.list({})) ?? EMPTY_ROWS;
+   const folderRows = useAblo((ablo) => ablo.documentFolder.local.list({})) ?? EMPTY_ROWS;
    const { membersById } = useWorkspace();
 
    return useMemo(() => {
@@ -389,7 +392,8 @@ export interface ProjectUpdateItem {
  * update written in the composer and one written by an agent are one shape.
  */
 export function useProjectUpdates(projectId: string): ProjectUpdateItem[] {
-   const rows = useAblo((ablo) => ablo.projectUpdate.local.list({ where: { projectId } })) ?? [];
+   const rows =
+      useAblo((ablo) => ablo.projectUpdate.local.list({ where: { projectId } })) ?? EMPTY_ROWS;
    const { membersById } = useWorkspace();
 
    return useMemo(() => {
@@ -426,7 +430,8 @@ function unknownMember(id: string): Member {
 
 /** All issues the viewer can see, newest rank first — the list's default order. */
 export function useIssues(): HydratedIssue[] {
-   const issueRows = useAblo((ablo) => ablo.issue.local.list({ orderBy: { rank: 'desc' } })) ?? [];
+   const issueRows =
+      useAblo((ablo) => ablo.issue.local.list({ orderBy: { rank: 'desc' } })) ?? EMPTY_ROWS;
    const statuses = useStatuses();
    const labels = useLabels();
    const projects = useProjects();
@@ -478,8 +483,8 @@ export function useIssueDetail(identifier: string): {
    // re-runs: the feed rendered whatever had synced by the time it mounted and
    // then went deaf. Posting a comment did not show it to the person who wrote
    // it, and an agent's comment never appeared at all until a reload.
-   const commentRows = useAblo((ablo) => ablo.comment.local.list({})) ?? [];
-   const eventRows = useAblo((ablo) => ablo.issueActivity.local.list({})) ?? [];
+   const commentRows = useAblo((ablo) => ablo.comment.local.list({})) ?? EMPTY_ROWS;
+   const eventRows = useAblo((ablo) => ablo.issueActivity.local.list({})) ?? EMPTY_ROWS;
 
    const description = useMemo(() => parseContentBlocks(issue?.description), [issue?.description]);
 
@@ -588,7 +593,8 @@ export function useTeams(): Team[] {
 
 /** Cycles for the workspace, newest number first. */
 export function useCycles(): Cycle[] {
-   const rows = useAblo((ablo) => ablo.cycle.local.list({ orderBy: { number: 'desc' } })) ?? [];
+   const rows =
+      useAblo((ablo) => ablo.cycle.local.list({ orderBy: { number: 'desc' } })) ?? EMPTY_ROWS;
 
    return useMemo(
       () =>
@@ -655,7 +661,7 @@ export interface IssueLinks {
  */
 export function useIssueLinks(issueId: string | undefined): IssueLinks {
    const issues = useIssues();
-   const rows = useAblo((ablo) => ablo.issueLink.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.issueLink.local.list({})) ?? EMPTY_ROWS;
 
    return useMemo(() => {
       const byId = new Map(issues.map((issue) => [issue.id, issue]));
@@ -695,7 +701,7 @@ export interface IssuePullRequest {
  * next to real issue data, which is the worst place for a fixture to be.
  */
 export function useIssuePullRequests(issueId: string | undefined): IssuePullRequest[] {
-   const rows = useAblo((ablo) => ablo.issuePullRequest.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.issuePullRequest.local.list({})) ?? EMPTY_ROWS;
    return useMemo(
       () =>
          issueId
@@ -714,7 +720,7 @@ export function useIssuePullRequests(issueId: string | undefined): IssuePullRequ
 
 /** The project milestone an issue is attached to, if any. */
 export function useIssueMilestone(issue: { milestoneId?: string } | undefined) {
-   const rows = useAblo((ablo) => ablo.projectMilestone.local.list({})) ?? [];
+   const rows = useAblo((ablo) => ablo.projectMilestone.local.list({})) ?? EMPTY_ROWS;
    return useMemo(
       () => (issue?.milestoneId ? rows.find((row) => row.id === issue.milestoneId) : undefined),
       [rows, issue?.milestoneId]

@@ -51,18 +51,11 @@ import {
  * `tenant_model_missing_organization_id`. That is the whole reason it exists;
  * switching it off cost the app every write path.
  *
- * What actually bounds a read:
- *   - browser clients: their sync groups, minted per viewer in
- *     /api/ablo-session — verified to hold for both local and async reads.
- *   - agents: the tool layer, which derives every scope from the run row.
- *
- * Sync groups bound an HTTP read the same way they bound a live one. A session
- * minted for a member of one workspace, reading over `transport: 'http'`, lists
- * none of another workspace's rows — measured at 0 of 292 issues, and 0
- * comments and 0 projects, against a database holding four workspaces. Groups
- * are fixed when the session is minted and the browser never proposes its own:
- * /api/ablo-session reads no request body, deriving every group from the Better
- * Auth session and the `member` table.
+ * Sync groups route live delivery but are not the authorization boundary for
+ * HTTP reads. This deployment therefore requires one Ablo organization per
+ * customer before it can be treated as a hard multi-tenant boundary. The
+ * Better Auth membership check in /api/ablo-session still derives every group
+ * server-side and prevents a stale active organization from minting access.
  *
  * The secret key is the exception, and is meant to be. `sync` in `ablo/index.ts`
  * holds `ABLO_API_KEY` and can mint a session with any groups it likes, which is

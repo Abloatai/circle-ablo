@@ -39,7 +39,7 @@ export default function Teams() {
          }
       };
       return list.sort(compare);
-   }, [filters, ordering]);
+   }, [allTeams, filters, ordering]);
 
    return (
       <div className="w-full">

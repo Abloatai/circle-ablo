@@ -1,6 +1,6 @@
 {
    "name": "circle",
-   "version": "0.5.1",
+   "version": "0.5.2",
    "private": true,
    "packageManager": "pnpm@11.7.0",
    "scripts": {
@@ -23,7 +23,7 @@
       "test:ui": "playwright test --project=e2e --ui"
    },
    "dependencies": {
-      "@abloatai/ablo": "^0.55.0",
+      "@abloatai/ablo": "0.56.0",
       "@hookform/resolvers": "^4.1.2",
       "@kayron013/lexorank": "^2.0.0",
       "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -79,8 +79,8 @@
       "zustand": "^5.0.3"
    },
    "devDependencies": {
-      "@abloatai/cli": "^0.55.0",
-      "@abloatai/humans": "^0.55.0",
+      "@abloatai/cli": "0.56.0",
+      "@abloatai/humans": "0.56.0",
       "@eslint/eslintrc": "^3",
       "@playwright/test": "^1.62.1",
       "@tailwindcss/postcss": "^4",

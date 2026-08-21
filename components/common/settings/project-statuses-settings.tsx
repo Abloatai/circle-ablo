@@ -41,7 +41,7 @@ export default function ProjectStatusesSettings() {
             }
             return { ...group, statuses: [...buckets.values()].sort((a, b) => b.count - a.count) };
          }),
-      []
+      [projects]
    );
 
    return (

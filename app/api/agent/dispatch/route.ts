@@ -1,8 +1,5 @@
-import { Client } from 'eve/client';
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import * as t from '@/db/schema';
 import { sync } from '@/ablo';
+import { createAgentClient, findWorkspaceAgent } from '@/lib/agent-runtime';
 import { getViewer } from '@/lib/session';
 
 /**
@@ -34,12 +31,8 @@ export async function POST(request: Request): Promise<Response> {
    if (!viewer.teamIds.includes(issue.teamId)) {
       return Response.json({ error: 'Not your team' }, { status: 403 });
    }
-   const [agent] = await db
-      .select({ id: t.user.id, type: t.user.type })
-      .from(t.user)
-      .where(eq(t.user.id, agentUserId))
-      .limit(1);
-   if (!agent || agent.type !== 'agent') {
+   const agent = await findWorkspaceAgent(viewer.organizationId, issue.teamId, agentUserId);
+   if (!agent) {
       return Response.json({ error: 'That member is not an agent' }, { status: 400 });
    }
 
@@ -64,7 +57,7 @@ export async function POST(request: Request): Promise<Response> {
    const runId = created.id;
 
    try {
-      const client = new Client({ host: agentHost(), headers: agentHeaders() });
+      const client = createAgentClient();
       const { session } = await client.sessions.create({
          message: [
             `You have been assigned issue ${issue.identifier}.`,
@@ -92,33 +85,4 @@ export async function POST(request: Request): Promise<Response> {
       });
       return Response.json({ error: 'Could not start the agent' }, { status: 502 });
    }
-}
-
-/**
- * Where the agent runtime is.
- *
- * The localhost fallback is for `eve dev` only. Deployed, an unset `EVE_URL`
- * used to mean every dispatch quietly tried to reach 127.0.0.1 inside the
- * function's own sandbox and failed with a connection error that said nothing
- * about the real cause. It throws now, and the run row records why.
- */
-function agentHost(): string {
-   const url = process.env.EVE_URL;
-   if (url) return url;
-   if (process.env.NODE_ENV === 'production') {
-      throw new Error('EVE_URL is not set — the deployment does not know where the agent runs');
-   }
-   return 'http://127.0.0.1:2000';
-}
-
-/**
- * The credential the agent channel checks. See `agent/channels/eve.ts`: this
- * is a server-to-server call, so it carries a shared secret rather than the
- * caller's session.
- */
-function agentHeaders(): Record<string, string> | undefined {
-   const secret = process.env.AGENT_CHANNEL_SECRET;
-   if (!secret) return undefined;
-   const encoded = Buffer.from(`circle:${secret}`).toString('base64');
-   return { Authorization: `Basic ${encoded}` };
 }

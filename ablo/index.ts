@@ -1,3 +1,4 @@
+import 'server-only';
 import Ablo from '@abloatai/ablo';
 import { schema } from './schema';
 
