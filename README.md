@@ -41,8 +41,8 @@ You need a **Neon** database (or any Postgres with logical replication) and an
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/Eagardh/circle-powered-by-ablo.git
-cd circle-powered-by-ablo
+git clone https://github.com/Eagardh/circle.git
+cd circle
 pnpm install
 ```
 
