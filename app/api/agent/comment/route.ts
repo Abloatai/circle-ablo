@@ -3,6 +3,7 @@ import { sync } from '@/ablo';
 import { db } from '@/db';
 import * as t from '@/db/schema';
 import { createAgentClient, findWorkspaceAgent } from '@/lib/agent-runtime';
+import { storedBlocksToMarkdown } from '@/lib/data/content-blocks';
 import { canResumeIssueRun } from '@/lib/domain/agent-runs';
 import { getViewer } from '@/lib/session';
 
@@ -22,6 +23,7 @@ export async function POST(request: Request): Promise<Response> {
 
    const [entry] = await db
       .select({
+         commentBody: t.comment.body,
          commentCreatedAt: t.comment.createdAt,
          identifier: t.issue.identifier,
          issueId: t.issue.id,
@@ -84,6 +86,9 @@ export async function POST(request: Request): Promise<Response> {
          [
             `A teammate added a new comment to issue ${entry.identifier}.`,
             `runId: ${run.id}`,
+            '',
+            'Their committed comment:',
+            storedBlocksToMarkdown(entry.commentBody),
             '',
             'Call get_assignment again to read the updated discussion, then continue the work and reply in the issue comments.',
          ].join('\n'),

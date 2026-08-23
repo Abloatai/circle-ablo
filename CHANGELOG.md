@@ -12,6 +12,29 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.5.7]
+
+A fix to what the agent is actually given to read.
+
+### Fixed
+
+- **The agent was handed markup instead of prose.** Descriptions and comments
+  are stored as JSON blocks, and `get_assignment` returned that stored value
+  verbatim, so the model read block objects where a person had written a
+  sentence. Both come back as text now; comments saved as plain text before the
+  block editor are unchanged.
+- **Comments reached the agent out of order.** They are read from the issue's
+  own partition ordered by time, so the most recent instruction is identifiable
+  rather than wherever pagination happened to put it.
+
+### Changed
+
+- **`get_assignment` names which request is live.** `originalRequest` is the
+  issue's own, `activeRequest` is the latest teammate comment when there is
+  one, and the reply that wakes a resumed run now carries that comment's text
+  with it — so a follow-up instruction is in front of the agent instead of one
+  tool call away.
+
 ## [0.5.6]
 
 The agent can ask for a pull request to be merged. It cannot merge one.
@@ -416,7 +439,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.5.6...HEAD
+[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.5.7...HEAD
+[0.5.7]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.7
 [0.5.6]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.6
 [0.5.5]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.5
 [0.5.4]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.4

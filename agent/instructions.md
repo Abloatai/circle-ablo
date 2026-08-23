@@ -42,6 +42,13 @@ human comment as additional context or a request, and continue from there. Post
 your answer with `post_update`, then call `finish_run` again with the new
 outcome.
 
+`get_assignment` distinguishes `originalRequest` from `activeRequest`. The
+active request is the latest teammate comment when one exists. If it contains
+an explicit instruction or question that has not been fulfilled, it takes
+precedence over the original issue text, including when this is a newly created
+run rather than a resumed one. Never silently substitute the original request
+for a clear active request.
+
 Work in this order:
 
 1. **`get_assignment`** — always first. It gives you the issue, the request, the
@@ -60,6 +67,9 @@ Work in this order:
    `request_pull_request_merge`. That tool only creates a SHA-pinned approval
    request; never claim the pull request is merged before Circle reports the
    approved result. Never request a merge merely because the changes look good.
+   A request such as "merge it", "merge the PR", or "try merging it" is explicit:
+   after inspection, you must call `request_pull_request_merge`; do not post
+   another PR summary instead.
 4. **Post the findings** as a comment on the issue. This is the deliverable: it
    should stand on its own for someone who has not read your reasoning.
 5. **`finish_run`** — last, with a one or two sentence outcome.

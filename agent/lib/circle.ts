@@ -9,10 +9,10 @@
  */
 import Ablo from '@abloatai/ablo';
 import { identityAnchor, syncGroup } from '@abloatai/ablo/schema';
-import { eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { schema } from '../../ablo/schema';
 import { db } from '../../db';
-import { agentRun } from '../../db/schema/app';
+import { agentRun, comment } from '../../db/schema/app';
 
 /** Project-scoped, server-only. Used to read the run record and mint tokens. */
 const project = Ablo({ apiKey: process.env.ABLO_API_KEY, schema, transport: 'http' });
@@ -139,6 +139,32 @@ export async function listAllWhere<T>(
    keep: (row: T) => boolean
 ): Promise<T[]> {
    return (await listAll(readPage)).filter(keep);
+}
+
+/**
+ * The Ablo comment projection deliberately omits timestamps, and collection
+ * pagination does not promise chronological order. Read only the authorized
+ * run's exact issue partition here so `get_assignment` can identify the latest
+ * teammate instruction deterministically.
+ */
+export async function listRunComments(context: RunContext) {
+   if (!context.issueId) return [];
+
+   return db
+      .select({
+         authorId: comment.authorId,
+         body: comment.body,
+         createdAt: comment.createdAt,
+      })
+      .from(comment)
+      .where(
+         and(
+            eq(comment.organizationId, context.organizationId),
+            eq(comment.teamId, context.teamId),
+            eq(comment.issueId, context.issueId)
+         )
+      )
+      .orderBy(asc(comment.createdAt), asc(comment.id));
 }
 
 /** Body blocks match what the description and comment renderers already read. */

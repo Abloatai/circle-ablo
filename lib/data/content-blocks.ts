@@ -19,6 +19,21 @@ export function blocksToMarkdown(blocks: ContentBlock[]): string {
    return blocks.map(blockToMarkdown).join('\n\n');
 }
 
+/**
+ * Comments and descriptions are persisted as JSON blocks, while agents need
+ * the text a teammate actually sees. Keep plain-text legacy values intact and
+ * fail closed to the stored value if an unknown block shape is encountered.
+ */
+export function storedBlocksToMarkdown(value: string): string {
+   try {
+      const parsed = JSON.parse(value) as unknown;
+      if (!Array.isArray(parsed)) return value;
+      return blocksToMarkdown(parsed as ContentBlock[]);
+   } catch {
+      return value;
+   }
+}
+
 function blockToMarkdown(block: ContentBlock): string {
    switch (block.type) {
       case 'heading':
