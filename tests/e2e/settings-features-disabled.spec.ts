@@ -12,7 +12,7 @@ const FEATURES = [
    'Emojis',
 ];
 
-const DISABLED_PERSONAL = ['Code & reviews', 'Agent personalization'];
+const DISABLED_PERSONAL = ['Agent personalization'];
 
 test('unavailable Settings entries are disabled', async ({ alice, who }) => {
    await alice.goto(`/${who[0].orgSlug}/settings/preferences`);
@@ -33,6 +33,10 @@ test('unavailable Settings entries are disabled', async ({ alice, who }) => {
    await expect(group.getByRole('link')).toHaveCount(1);
 
    const personal = alice.locator('[data-sidebar="group"]', { hasText: 'Personal' });
+   await expect(personal.getByRole('link', { name: 'Code & reviews' })).toHaveAttribute(
+      'href',
+      `/${who[0].orgSlug}/settings/code-and-reviews`
+   );
    for (const name of DISABLED_PERSONAL) {
       const entry = personal.locator('[aria-disabled="true"]', { hasText: name }).first();
       await expect(entry).toHaveAttribute('title', /coming soon/i);

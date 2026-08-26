@@ -120,9 +120,9 @@ rather than `fill` before a gated submit button enables.
 ## Switched-off surfaces
 
 `lib/features.ts` holds a flag per surface that exists in the tree but is not
-on. Reviews and the integrations settings are both off: they render fixtures,
-or connect to nothing, and shipping them made the app claim things that were
-not true.
+on. Connected accounts is off: it connects to nothing, and shipping it made the
+app claim a link that has never existed. Reviews is on — it reads live from
+GitHub — and Settings → Integrations is where installations actually live.
 
 Turning one off means both halves. The nav entry stays visible but stops being
 a link and says "Coming soon" on hover; the route calls `notFound()`. A disabled

@@ -95,7 +95,6 @@ export const settingsNav: SettingsNavGroup[] = [
 
 /** Settings entries that are visible in the product shape but not available yet. */
 const DISABLED_URLS: Record<string, string> = {
-   '/settings/code-and-reviews': 'Coming soon',
    '/settings/agent-personalization': 'Coming soon',
    '/settings/connected-accounts': 'Coming soon',
 };

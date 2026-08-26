@@ -12,6 +12,50 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.6.0]
+
+Code review stops being a fixture. Two models review the same pinned revision,
+challenge each other, and Scout publishes one verdict.
+
+### Added
+
+- **Reviews read live from GitHub, and the surface is on.** The sidebar lists
+  real pull requests from every enabled repository mapped to one of the viewer's
+  teams, with GitHub's actual commits and bounded unified patches — not the same
+  six invented diffs everyone used to see.
+- **Deploy review team runs GPT and Claude against one pinned revision.** They
+  review independently, are then each given the other's report to challenge, and
+  Scout reconciles the four reports into a single verdict. A finding survives
+  only when its evidence ties back to the inspected diff, and genuine
+  disagreement is recorded as disputed rather than collapsed into consensus.
+  Missions, per-model analyses and findings are durable, so the UI can follow a
+  run in progress and the result outlives it.
+- **Reviewers can read the repository around the diff.** `find_repository_files`,
+  `read_repository_file`, and `search_repository_code` resolve the repository
+  from the review mission and read the exact commit it pinned, so a finding can
+  cite the caller, the shared type, or the test that proves it. All three are
+  read-only and bounded — capped per file, per page, and per call, with a cursor
+  the model follows deliberately instead of pulling in a whole repository. They
+  need no GitHub permission beyond the Contents: read the app already has.
+- **The issue says the review started.** Deploying the team moves the issue to
+  the team's active status and posts one comment naming the pull request and the
+  pinned head SHA, so the several minutes the run takes are not silence.
+
+### Fixed
+
+- **A reviewer is authorized by its session, not by a copied id.** The run is
+  resolved from the runtime's parent-session lineage rather than from a run id
+  the parent model had to retype into every specialist prompt — where a dropped
+  one broke the review and an invented one pointed at another run.
+- **A reviewer cannot leave its own mission.** Both the pull request and the head
+  SHA are checked against the mission that authorized the run. A URL for another
+  pull request is refused, and a revision that moved after the review was pinned
+  returns an explicit error asking for a new mission instead of quietly reviewing
+  code nobody pinned.
+- **A failed review says so.** The mission records the reason and is marked
+  terminal, and the linked issue gets one comment explaining what happened — a
+  run that gave up used to leave the issue exactly as it found it.
+
 ## [0.5.7]
 
 A fix to what the agent is actually given to read.
@@ -439,7 +483,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.5.7...HEAD
+[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.6.0
 [0.5.7]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.7
 [0.5.6]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.6
 [0.5.5]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.5

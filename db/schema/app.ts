@@ -404,6 +404,99 @@ export const issuePullRequest = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*                         Cross-model code reviews                           */
+/* -------------------------------------------------------------------------- */
+
+/** One GPT + Claude review of an exact pull-request revision. */
+export const reviewMission = pgTable(
+   'review_mission',
+   {
+      ...base,
+      teamId: text('team_id').notNull(),
+      issueId: text('issue_id').notNull(),
+      repositoryId: text('repository_id').notNull(),
+      pullRequestUrl: text('pull_request_url').notNull(),
+      repository: text('repository').notNull(),
+      pullNumber: integer('pull_number').notNull(),
+      headSha: text('head_sha').notNull(),
+      requestedById: text('requested_by_id').notNull(),
+      agentRunId: text('agent_run_id'),
+      status: text('status')
+         .$type<'queued' | 'running' | 'waiting' | 'succeeded' | 'failed' | 'canceled'>()
+         .notNull()
+         .default('queued'),
+      phase: text('phase')
+         .$type<'queued' | 'independent' | 'cross_review' | 'synthesis' | 'completed'>()
+         .notNull()
+         .default('queued'),
+      verdict: text('verdict').$type<'approve' | 'request_changes' | 'comment'>(),
+      summary: text('summary'),
+      confidence: real('confidence'),
+      completedAt: timestamp('completed_at', { withTimezone: true }),
+   },
+   (t) => [
+      index('review_mission_team_status_idx').on(t.teamId, t.status),
+      index('review_mission_issue_idx').on(t.issueId),
+      index('review_mission_pull_idx').on(t.pullRequestUrl, t.headSha),
+      index('review_mission_run_idx').on(t.agentRunId),
+   ]
+);
+
+/** A durable stage result from one member of the review team. */
+export const reviewAnalysis = pgTable(
+   'review_analysis',
+   {
+      ...base,
+      teamId: text('team_id').notNull(),
+      missionId: text('mission_id').notNull(),
+      model: text('model').$type<'gpt' | 'claude' | 'scout'>().notNull(),
+      phase: text('phase').$type<'independent' | 'cross_review' | 'synthesis'>().notNull(),
+      status: text('status').$type<'queued' | 'running' | 'succeeded' | 'failed'>().notNull(),
+      summary: text('summary'),
+      recommendation: text('recommendation').$type<'approve' | 'request_changes' | 'comment'>(),
+      confidence: real('confidence'),
+      result: jsonb('result').$type<Record<string, unknown>>(),
+      startedAt: timestamp('started_at', { withTimezone: true }),
+      finishedAt: timestamp('finished_at', { withTimezone: true }),
+   },
+   (t) => [
+      uniqueIndex('review_analysis_stage_uidx').on(t.missionId, t.model, t.phase),
+      index('review_analysis_mission_idx').on(t.missionId),
+   ]
+);
+
+/** A reconciled, evidence-backed finding shown to the human reviewer. */
+export const reviewFinding = pgTable(
+   'review_finding',
+   {
+      ...base,
+      teamId: text('team_id').notNull(),
+      missionId: text('mission_id').notNull(),
+      category: text('category')
+         .$type<'correctness' | 'security' | 'tests' | 'performance' | 'maintainability'>()
+         .notNull(),
+      severity: text('severity').$type<'blocker' | 'high' | 'medium' | 'low'>().notNull(),
+      title: text('title').notNull(),
+      body: text('body').notNull(),
+      evidence: text('evidence').notNull(),
+      path: text('path'),
+      line: integer('line'),
+      raisedBy: jsonb('raised_by').$type<Array<'gpt' | 'claude'>>().notNull().default([]),
+      challengedBy: jsonb('challenged_by').$type<Array<'gpt' | 'claude'>>().notNull().default([]),
+      resolution: text('resolution')
+         .$type<'confirmed' | 'disputed' | 'dismissed'>()
+         .notNull()
+         .default('confirmed'),
+      confidence: real('confidence').notNull(),
+      fingerprint: text('fingerprint').notNull(),
+   },
+   (t) => [
+      uniqueIndex('review_finding_fingerprint_uidx').on(t.missionId, t.fingerprint),
+      index('review_finding_mission_idx').on(t.missionId),
+   ]
+);
+
+/* -------------------------------------------------------------------------- */
 /*                              GitHub App                                    */
 /* -------------------------------------------------------------------------- */
 

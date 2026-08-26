@@ -1,15 +1,21 @@
 import { notFound } from 'next/navigation';
 import Reviews from '@/components/common/reviews/reviews';
-import { REVIEWS_ENABLED } from '@/lib/features';
 import MainLayout from '@/components/layout/main-layout';
+import { listCodeReviews } from '@/lib/github/reviews';
+import { getViewer } from '@/lib/session';
 
-export default function CreatedReviewsPage() {
-   // Disabling the sidebar link is not enough — the URL still resolves.
-   if (!REVIEWS_ENABLED) notFound();
+export default async function CreatedReviewsPage({
+   params,
+}: {
+   params: Promise<{ orgId: string }>;
+}) {
+   const [{ orgId }, viewer] = await Promise.all([params, getViewer()]);
+   if (!viewer || viewer.organizationSlug !== orgId) notFound();
+   const collection = await listCodeReviews(viewer, 'completed');
 
    return (
       <MainLayout>
-         <Reviews listTab="created" />
+         <Reviews orgId={orgId} listTab="completed" {...collection} />
       </MainLayout>
    );
 }

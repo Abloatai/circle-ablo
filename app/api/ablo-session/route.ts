@@ -62,6 +62,9 @@ export async function POST(request: Request): Promise<Response> {
          subscription: ['read', 'create', 'delete'],
          agentRun: ['read'],
          agentMessage: ['read'],
+         reviewMission: ['read'],
+         reviewAnalysis: ['read'],
+         reviewFinding: ['read'],
       },
       // `org` and `user` are kinds the engine reserves, so they get the typed
       // constructor — a misspelling is a compile error rather than a session

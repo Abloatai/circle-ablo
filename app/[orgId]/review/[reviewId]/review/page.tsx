@@ -1,20 +1,10 @@
-import { notFound } from 'next/navigation';
-import Reviews from '@/components/common/reviews/reviews';
-import { REVIEWS_ENABLED } from '@/lib/features';
-import MainLayout from '@/components/layout/main-layout';
+import { redirect } from 'next/navigation';
 
 export default async function ReviewGuidePage({
    params,
 }: {
-   params: Promise<{ reviewId: string }>;
+   params: Promise<{ orgId: string; reviewId: string }>;
 }) {
-   // Disabling the sidebar link is not enough — the URL still resolves.
-   if (!REVIEWS_ENABLED) notFound();
-
-   const { reviewId } = await params;
-   return (
-      <MainLayout>
-         <Reviews selectedReviewId={reviewId} section="guide" />
-      </MainLayout>
-   );
+   const { orgId, reviewId } = await params;
+   redirect(`/${orgId}/review/${reviewId}`);
 }

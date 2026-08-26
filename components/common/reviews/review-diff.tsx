@@ -2,8 +2,8 @@
 
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { Review } from '@/lib/domain/reviews';
 import { cn } from '@/lib/utils';
-import { getReviewFileDiff, Review } from '@/lib/domain/reviews';
 import {
    Check,
    FileCode2,
@@ -59,7 +59,9 @@ export function ReviewDiff({ review }: { review: Review }) {
                         >
                            <span className="font-mono text-muted-foreground">{commit.sha}</span>
                            <span className="flex-1 truncate">{commit.message}</span>
-                           <span className="text-muted-foreground shrink-0">{commit.timeAgo}</span>
+                           <span className="text-muted-foreground shrink-0">
+                              {commit.author ?? 'Unknown author'}
+                           </span>
                         </div>
                      ))}
                   </PopoverContent>
@@ -96,7 +98,7 @@ export function ReviewDiff({ review }: { review: Review }) {
             <div className="flex-1 min-w-0 overflow-y-auto p-4 flex flex-col gap-4">
                {files.map((file) => (
                   <div key={file.name + file.path} id={`diff-${file.name}`}>
-                     <DiffView diff={getReviewFileDiff(review, file)} />
+                     <DiffView diff={file.diff} />
                   </div>
                ))}
             </div>

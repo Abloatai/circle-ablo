@@ -35,13 +35,7 @@ export interface RunContext {
    ablo: typeof project;
 }
 
-export async function loadRun(runId: string): Promise<RunContext> {
-   // Read the run straight from Postgres. It is our own control data, not
-   // something humans and agents edit concurrently, so it needs no coordination
-   // — and a plain read avoids the sync layer's indexed-read quirks.
-   const [run] = await db.select().from(agentRun).where(eq(agentRun.id, runId)).limit(1);
-   if (!run) throw new Error(`No agent run ${runId}`);
-
+async function createRunContext(run: typeof agentRun.$inferSelect): Promise<RunContext> {
    await project.ready();
 
    const session = await project.sessions.create({
@@ -55,6 +49,9 @@ export async function loadRun(runId: string): Promise<RunContext> {
          agentMessage: ['read', 'create'],
          notification: ['create'],
          workflowState: ['read'],
+         reviewMission: ['read', 'update'],
+         reviewAnalysis: ['read', 'create', 'update'],
+         reviewFinding: ['read', 'create', 'update'],
       },
       /**
        * The run's team, **and** its organization.
@@ -78,7 +75,7 @@ export async function loadRun(runId: string): Promise<RunContext> {
    await ablo.ready();
 
    return {
-      runId,
+      runId: run.id,
       requestedById: run.requestedById,
       organizationId: run.organizationId,
       issueId: run.issueId ?? undefined,
@@ -87,6 +84,26 @@ export async function loadRun(runId: string): Promise<RunContext> {
       prompt: run.prompt,
       ablo,
    };
+}
+
+export async function loadRun(runId: string): Promise<RunContext> {
+   // Read the run straight from Postgres. It is our own control data, not
+   // something humans and agents edit concurrently, so it needs no coordination
+   // — and a plain read avoids the sync layer's indexed-read quirks.
+   const [run] = await db.select().from(agentRun).where(eq(agentRun.id, runId)).limit(1);
+   if (!run) throw new Error(`No agent run ${runId}`);
+   return createRunContext(run);
+}
+
+/**
+ * Resolves a delegated subagent back to the Circle run that created its root
+ * Eve session. This keeps authorization in runtime lineage instead of relying
+ * on the parent model to copy an opaque run id into every child prompt.
+ */
+export async function loadRunBySessionId(sessionId: string): Promise<RunContext> {
+   const [run] = await db.select().from(agentRun).where(eq(agentRun.sessionId, sessionId)).limit(1);
+   if (!run) throw new Error(`No agent run for Eve session ${sessionId}`);
+   return createRunContext(run);
 }
 
 /**

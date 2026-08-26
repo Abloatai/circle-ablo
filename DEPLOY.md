@@ -95,10 +95,12 @@ with the deployment origin:
   Circle's signed setup state)
 - Webhook URL: `https://circle.example/api/github/webhook`
 - Webhook secret: a new high-entropy value
-- Repository permissions: **Metadata: read-only**, **Pull requests: read-only**,
-  and **Contents: read and write**. Contents write is used only after a
-  workspace admin approves a SHA-pinned merge request in Circle. Leave it off
-  if this deployment should support inspection without merging.
+- Repository permissions: **Metadata: read-only**, **Pull requests: read and
+  write**, and **Contents: read and write**. Pull-request write lets signed-in
+  team members submit review comments, approvals, and change requests from
+  Circle. Contents write is used only after a workspace admin approves a
+  SHA-pinned merge request in Circle. Leave Contents write off if this
+  deployment should support reviews without merging.
 - Subscribe to events: **Installation**, **Installation repositories**, and
   **Pull request**
 
@@ -123,6 +125,23 @@ card in the issue activity feed. It does not merge on its own: a workspace
 admin must confirm the repository, merge method, and pinned head SHA. Circle
 then calls GitHub, which still enforces the repository's branch protections and
 rules.
+
+The **Reviews** sidebar reads pull requests live from every enabled repository
+mapped to one of the viewer's teams. It shows GitHub's actual commits and
+bounded unified patches; review comments, approvals, and change requests are
+written back through the GitHub App installation token. **Deploy review team**
+on a pull request reuses its linked Circle issue or creates one, then starts an
+issue-scoped cross-model run. GPT-5.6 Terra and Claude Sonnet 4.6 inspect the
+same pinned revision independently, critique each other's reports, and Scout
+publishes the reconciled verdict and findings through Ablo.
+
+Specialist reviewers read beyond the diff, and only within the mission. Each one
+can list paths, read bounded file excerpts, and search source at the exact commit
+the mission pinned, through the same installation token — so a finding can cite
+the caller or the test that proves it. Every one of those reads is scoped to that
+mission's repository and revision, capped in files, bytes and lines per call, and
+read-only: reviewers cannot merge, comment on GitHub, or modify code. This needs
+no permission beyond the **Contents: read** the app already has.
 
 GitHub's registration, setup-URL, and webhook-signature references:
 

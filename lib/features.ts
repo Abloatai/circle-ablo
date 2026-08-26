@@ -8,17 +8,10 @@
 /**
  * The code-review section — a PR inbox with a diff viewer and a review guide.
  *
- * Off because it renders from `lib/domain/reviews.ts`, a fixture: hand-written
- * diffs, invented commit SHAs, the same six pull requests for every person,
- * forever. Every other list in Circle reads live off the synced pool, and this
- * one contradicted that while looking more finished than anything around it.
- *
- * Turning it on means real Git data. The Overview and Changes tabs are
- * reachable from GitHub's API — `issuePullRequest` already resolves a PR's
- * title and state server-side — but the review guide is a generated artefact
- * and a feature in its own right.
+ * Backed by repositories explicitly mapped to one of the viewer's teams. Lists,
+ * details, diffs and submitted reviews come from GitHub at request time.
  */
-export const REVIEWS_ENABLED = false;
+export const REVIEWS_ENABLED = true;
 
 /**
  * Connected accounts.

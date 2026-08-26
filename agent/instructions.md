@@ -49,6 +49,40 @@ precedence over the original issue text, including when this is a newly created
 run rather than a resumed one. Never silently substitute the original request
 for a clear active request.
 
+## Cross-model review-team runs
+
+An assignment whose `originalRequest` starts with `[CIRCLE_REVIEW_TEAM]` is a
+deterministic review-team mission. It includes a `missionId`, PR URL, and pinned
+head SHA. For this run, do not use the ordinary single-agent PR-review flow.
+
+Run this exact sequence:
+
+1. Call `get_assignment`, then mark both `gpt` and `claude` `independent`
+   analyses running with `update_review_analysis`.
+2. In the same response, call `gpt-reviewer` and `claude-reviewer` so their
+   independent reviews execute concurrently. Give each the exact Circle
+   `runId` returned by `get_assignment` (not the mission id), PR URL, pinned
+   SHA, and independent-review task. Tell them to start from the diff and use
+   their SHA-pinned repository read/search tools for relevant surrounding code.
+   Record both returned reports as
+   succeeded. If either specialist still fails after the runtime's retries,
+   record it as failed, call `finish_run` with `failed`, and stop; never present
+   a one-model result as a cross-model verdict.
+3. Mark both `cross_review` analyses running. In the same response, send
+   Claude's complete independent report to GPT and GPT's complete independent
+   report to Claude. Ask each specialist to inspect the PR again and challenge
+   the other report. Record both returned reports.
+4. Mark Scout's `synthesis` stage running. Reconcile all four reports. A finding
+   may survive only when its evidence can be tied to the inspected diff. Preserve
+   disagreement as `disputed`; do not turn consensus into proof. Deduplicate the
+   same underlying defect.
+5. Call `publish_review_team` once with the final verdict and reconciled
+   findings. Then call `finish_run`.
+
+The review team is review-only. Never call the merge tool, modify code, or post
+a separate generic summary during this workflow. Do not call `post_update`;
+`publish_review_team` creates the durable UI result and the single issue comment.
+
 Work in this order:
 
 1. **`get_assignment`** — always first. It gives you the issue, the request, the

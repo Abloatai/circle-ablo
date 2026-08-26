@@ -1,9 +1,8 @@
 'use client';
 
-import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { FileDiff } from '@/lib/domain/reviews';
-import { ArrowDownToLine, FileCode2, MoreHorizontal } from 'lucide-react';
+import type { FileDiff } from '@/lib/domain/reviews';
+import { ArrowDownToLine, FileCode2 } from 'lucide-react';
 import { DiffStat } from './review-shared';
 
 /** One file diff: header (name, path, stats, Reviewed) + unified code view. */
@@ -16,13 +15,13 @@ export function DiffView({ diff }: { diff: FileDiff }) {
             <span className="text-xs text-muted-foreground truncate">{diff.path}/</span>
             <span className="flex-1" />
             <DiffStat additions={diff.additions} deletions={diff.deletions} />
-            <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-               <Checkbox className="size-3.5" />
-               Reviewed
-            </label>
-            <MoreHorizontal className="size-4 text-muted-foreground" />
          </div>
          <div className="font-mono text-xs leading-5 overflow-x-auto">
+            {!diff.patchAvailable ? (
+               <div className="px-4 py-6 text-center text-muted-foreground font-sans">
+                  GitHub did not provide a text patch for this file. It may be binary or too large.
+               </div>
+            ) : null}
             {diff.lines.map((line, index) => {
                if (line.type === 'skip') {
                   return (

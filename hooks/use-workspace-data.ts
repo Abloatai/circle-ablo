@@ -23,8 +23,95 @@ import { statusesForTeam, type Status } from '@/lib/domain/status';
 import type { Team } from '@/lib/domain/teams';
 import type { View, ViewFilter, ViewType } from '@/lib/domain/views';
 import { withCycleProgress, type Cycle } from '@/lib/domain/cycles';
+import type {
+   ReviewTeamAnalysis,
+   ReviewTeamFinding,
+   ReviewTeamMission,
+} from '@/lib/domain/review-team';
 
 const EMPTY_ROWS: never[] = [];
+
+export function useReviewTeam(
+   pullRequestUrl: string,
+   headSha: string
+): {
+   mission?: ReviewTeamMission;
+   analyses: ReviewTeamAnalysis[];
+   findings: ReviewTeamFinding[];
+} {
+   const missionRows = useAblo((ablo) => ablo.reviewMission.local.list({})) ?? EMPTY_ROWS;
+   const analysisRows = useAblo((ablo) => ablo.reviewAnalysis.local.list({})) ?? EMPTY_ROWS;
+   const findingRows = useAblo((ablo) => ablo.reviewFinding.local.list({})) ?? EMPTY_ROWS;
+
+   return useMemo(() => {
+      const row = missionRows
+         .filter(
+            (candidate) =>
+               candidate.pullRequestUrl === pullRequestUrl && candidate.headSha === headSha
+         )
+         .sort(
+            (a, b) =>
+               new Date((b as { createdAt?: string | Date }).createdAt ?? 0).getTime() -
+               new Date((a as { createdAt?: string | Date }).createdAt ?? 0).getTime()
+         )[0];
+      if (!row) return { mission: undefined, analyses: [], findings: [] };
+
+      const mission: ReviewTeamMission = {
+         id: row.id,
+         issueId: row.issueId,
+         headSha: row.headSha,
+         status: row.status,
+         phase: row.phase,
+         verdict: row.verdict ?? undefined,
+         summary: row.summary ?? undefined,
+         confidence: row.confidence ?? undefined,
+         createdAt: new Date(
+            (row as { createdAt?: string | Date }).createdAt ?? Date.now()
+         ).getTime(),
+      };
+
+      return {
+         mission,
+         analyses: analysisRows
+            .filter((analysis) => analysis.missionId === row.id)
+            .map((analysis) => ({
+               id: analysis.id,
+               missionId: analysis.missionId,
+               model: analysis.model,
+               phase: analysis.phase,
+               status: analysis.status,
+               summary: analysis.summary ?? undefined,
+               recommendation: analysis.recommendation ?? undefined,
+               confidence: analysis.confidence ?? undefined,
+            })),
+         findings: findingRows
+            .filter((finding) => finding.missionId === row.id)
+            .map((finding) => ({
+               id: finding.id,
+               missionId: finding.missionId,
+               category: finding.category,
+               severity: finding.severity,
+               title: finding.title,
+               body: finding.body,
+               evidence: finding.evidence,
+               path: finding.path ?? undefined,
+               line: finding.line ?? undefined,
+               raisedBy: asReviewers(finding.raisedBy),
+               challengedBy: asReviewers(finding.challengedBy),
+               resolution: finding.resolution,
+               confidence: finding.confidence,
+            })),
+      };
+   }, [missionRows, analysisRows, findingRows, pullRequestUrl, headSha]);
+}
+
+function asReviewers(value: unknown): Array<'gpt' | 'claude'> {
+   const parsed = typeof value === 'string' ? safeParse(value) : value;
+   if (!Array.isArray(parsed)) return [];
+   return parsed.filter((reviewer): reviewer is 'gpt' | 'claude' =>
+      ['gpt', 'claude'].includes(String(reviewer))
+   );
+}
 
 /**
  * Live workspace data, in the shapes the existing views expect.

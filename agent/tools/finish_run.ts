@@ -1,6 +1,9 @@
 import { defineTool } from 'eve/tools';
+import { and, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
-import { idempotencyKey, loadRun } from '../lib/circle';
+import { db } from '../../db';
+import { reviewMission } from '../../db/schema/app';
+import { idempotencyKey, loadRun, textBlocks } from '../lib/circle';
 
 export default defineTool({
    description:
@@ -32,6 +35,61 @@ export default defineTool({
             finishedAt: new Date(),
          } as unknown as Record<string, never>,
       });
+      const [mission] = await db
+         .select({ id: reviewMission.id })
+         .from(reviewMission)
+         .where(
+            and(
+               eq(reviewMission.agentRunId, runId),
+               eq(reviewMission.organizationId, context.organizationId),
+               ne(reviewMission.status, 'succeeded')
+            )
+         )
+         .limit(1);
+      if (mission) {
+         await context.ablo.reviewMission.update({
+            id: mission.id,
+            data: {
+               // A successful review-team run must publish its verdict first.
+               // Finishing without that durable result is a failed protocol.
+               status: outcome === 'succeeded' ? 'failed' : outcome,
+               summary: result,
+               ...(outcome === 'failed' ? { completedAt: new Date() } : {}),
+            },
+         });
+
+         // Review missions deliberately do not post intermediate chatter. A
+         // terminal failure still needs one durable, visible explanation on
+         // the linked issue; otherwise the user sees an issue appear and no
+         // evidence that the review actually ran.
+         if (outcome === 'failed' && context.issueId) {
+            const body = `Cross-model review failed\n\n${result}\n\nDeploy the review team again to retry.`;
+            await context.ablo.comment.create({
+               idempotencyKey: idempotencyKey(runId, 'review-team-failed', body),
+               data: {
+                  id: crypto.randomUUID(),
+                  workspaceId: context.organizationId,
+                  teamId: context.teamId,
+                  issueId: context.issueId,
+                  authorId: context.agentUserId,
+                  body: textBlocks(body),
+                  reactions: {},
+               },
+            });
+            await context.ablo.notification
+               .create({
+                  idempotencyKey: idempotencyKey(runId, 'review-team-failed-notify', mission.id),
+                  data: {
+                     workspaceId: context.organizationId,
+                     userId: context.requestedById,
+                     type: 'comment',
+                     issueId: context.issueId,
+                     actorId: context.agentUserId,
+                  },
+               })
+               .catch(() => undefined);
+         }
+      }
       return { recorded: outcome };
    },
 });

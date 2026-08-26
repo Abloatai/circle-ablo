@@ -37,6 +37,7 @@ export default defineTool({
       const latestTeammateComment = discussion.findLast((comment) => comment.role === 'teammate');
 
       return {
+         runId: context.runId,
          identifier: issue.identifier,
          title: issue.title,
          description: storedBlocksToMarkdown(issue.description),

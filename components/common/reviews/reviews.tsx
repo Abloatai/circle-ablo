@@ -1,22 +1,14 @@
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import type { Review, ReviewList, ReviewStatus, ReviewSummary } from '@/lib/domain/reviews';
 import { cn } from '@/lib/utils';
-import {
-   createdReviews,
-   forYouReviews,
-   Review,
-   ReviewList,
-   ReviewStatus,
-} from '@/lib/domain/reviews';
 import { ListFilter, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { ReactNode, useState } from 'react';
-import { ReviewDetail, ReviewSection } from './review-detail';
+import { type ReactNode, useState } from 'react';
+import { ReviewDetail, type ReviewSection } from './review-detail';
 import { PrIcon } from './review-shared';
 
-/** Hand-drawn empty-state sketch (paper plane over a folded sheet). */
 function EmptySketch() {
    return (
       <svg width="150" height="120" viewBox="0 0 150 120" fill="none" aria-hidden>
@@ -34,6 +26,7 @@ function EmptySketch() {
 
 const GROUP_LABELS: Record<ReviewStatus, string> = {
    open: 'Open',
+   draft: 'Draft',
    merged: 'Merged',
    closed: 'Closed',
 };
@@ -43,7 +36,7 @@ function ReviewRow({
    orgId,
    selected,
 }: {
-   review: Review;
+   review: ReviewSummary;
    orgId: string;
    selected: boolean;
 }) {
@@ -56,13 +49,17 @@ function ReviewRow({
          )}
       >
          <PrIcon status={review.status} />
-         <span className="flex-1 truncate">{review.title}</span>
-         <span className="text-xs text-muted-foreground shrink-0">{review.timeAgo}</span>
+         <span className="flex-1 min-w-0">
+            <span className="block truncate">{review.title}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">
+               {review.repository}#{review.prNumber}
+            </span>
+         </span>
+         <span className="text-xs text-muted-foreground shrink-0">{review.updatedLabel}</span>
       </Link>
    );
 }
 
-/** Collapsible status group: the header arrow really opens and closes the rows. */
 function ReviewGroup({
    label,
    count,
@@ -109,25 +106,34 @@ function ReviewGroup({
 }
 
 interface ReviewsProps {
-   /** Which list tab is active ("/reviews" vs "/reviews/created"). */
+   orgId: string;
+   reviews: ReviewSummary[];
+   connectedRepositories: number;
+   failedRepositories?: number;
    listTab?: ReviewList;
-   /** Selected review (detail routes). */
-   selectedReviewId?: string;
+   selectedReview?: Review;
    section?: ReviewSection;
 }
 
-/** Reviews split view: list panel (For you / Created) + detail or empty state. */
 export default function Reviews({
-   listTab = 'for-you',
-   selectedReviewId,
+   orgId,
+   reviews,
+   connectedRepositories,
+   failedRepositories = 0,
+   listTab = 'open',
+   selectedReview,
    section = 'overview',
 }: ReviewsProps) {
-   const { orgId } = useParams<{ orgId: string }>();
-   const source = listTab === 'for-you' ? forYouReviews : createdReviews;
-
-   const groups = (['open', 'merged', 'closed'] as ReviewStatus[])
+   const source = reviews.filter((review) =>
+      listTab === 'open'
+         ? review.status === 'open' || review.status === 'draft'
+         : review.status === 'merged' || review.status === 'closed'
+   );
+   const statusOrder: ReviewStatus[] =
+      listTab === 'open' ? ['open', 'draft'] : ['merged', 'closed'];
+   const groups = statusOrder
       .map((status) => ({
-         label: status === 'merged' && listTab === 'for-you' ? 'Completed' : GROUP_LABELS[status],
+         label: GROUP_LABELS[status],
          items: source.filter((review) => review.status === status),
       }))
       .filter((group) => group.items.length > 0);
@@ -150,26 +156,31 @@ export default function Reviews({
                   href={`/${orgId}/reviews`}
                   className={cn(
                      'px-2.5 py-1 rounded-md border text-xs font-medium transition-colors',
-                     listTab === 'for-you'
+                     listTab === 'open'
                         ? 'bg-accent border-transparent'
                         : 'text-muted-foreground hover:bg-accent/50'
                   )}
                >
-                  For you
+                  Open
                </Link>
                <Link
                   href={`/${orgId}/reviews/created`}
                   className={cn(
                      'px-2.5 py-1 rounded-md border text-xs font-medium transition-colors',
-                     listTab === 'created'
+                     listTab === 'completed'
                         ? 'bg-accent border-transparent'
                         : 'text-muted-foreground hover:bg-accent/50'
                   )}
                >
-                  Created
+                  Completed
                </Link>
             </div>
             <div className="flex-1 overflow-y-auto">
+               {failedRepositories > 0 ? (
+                  <p className="px-4 py-2 text-xs text-amber-600 border-b">
+                     {failedRepositories} connected repository could not be refreshed.
+                  </p>
+               ) : null}
                {groups.map((group) => (
                   <ReviewGroup key={group.label} label={group.label} count={group.items.length}>
                      {group.items.map((review) => (
@@ -177,7 +188,7 @@ export default function Reviews({
                            key={review.id}
                            review={review}
                            orgId={orgId}
-                           selected={review.id === selectedReviewId}
+                           selected={review.id === selectedReview?.id}
                         />
                      ))}
                   </ReviewGroup>
@@ -186,12 +197,28 @@ export default function Reviews({
          </div>
 
          <div className="flex-1 min-w-0 h-full overflow-hidden">
-            {selectedReviewId ? (
-               <ReviewDetail reviewId={selectedReviewId} section={section} />
+            {selectedReview ? (
+               <ReviewDetail review={selectedReview} orgId={orgId} section={section} />
             ) : (
-               <div className="h-full flex flex-col items-center justify-center gap-4 text-muted-foreground">
+               <div className="h-full flex flex-col items-center justify-center gap-4 text-muted-foreground px-8 text-center">
                   <EmptySketch />
-                  <span className="text-sm">{source.length} reviews</span>
+                  {connectedRepositories === 0 ? (
+                     <>
+                        <span className="text-sm">
+                           No GitHub repositories are mapped to your teams.
+                        </span>
+                        <Link
+                           href={`/${orgId}/settings/integrations`}
+                           className="text-sm text-primary hover:underline"
+                        >
+                           Configure GitHub integration
+                        </Link>
+                     </>
+                  ) : (
+                     <span className="text-sm">
+                        No {listTab === 'open' ? 'open' : 'completed'} pull requests.
+                     </span>
+                  )}
                </div>
             )}
          </div>

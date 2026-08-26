@@ -1,29 +1,27 @@
 'use client';
 
-import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
-import { Review, ReviewFileCategory } from '@/lib/domain/reviews';
-import {
-   ChevronDown,
-   ChevronRight,
-   FileCode2,
-   GitCommitHorizontal,
-   Paperclip,
-   Plus,
-   Send,
-   UserPlus,
-} from 'lucide-react';
+import type { Review } from '@/lib/domain/reviews';
+import { ChevronDown, FileCode2, GitCommitHorizontal } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { DiffStat, InlineText, IssueCheckIcon, PrIcon } from './review-shared';
+import { DiffStat, IssueCheckIcon, PrIcon } from './review-shared';
+import { ReviewSubmit } from './review-submit';
+import { ReviewTeam } from './review-team';
 
-const CATEGORY_LABELS: Record<ReviewFileCategory, string> = {
-   implementation: 'Implementation',
-   tests: 'Tests',
+const ReviewMarkdown = dynamic(() =>
+   import('./review-markdown').then((module) => module.ReviewMarkdown)
+);
+
+const REVIEW_STATE_LABELS: Record<string, string> = {
+   APPROVED: 'Approved',
+   CHANGES_REQUESTED: 'Requested changes',
+   COMMENTED: 'Commented',
+   DISMISSED: 'Dismissed',
+   PENDING: 'Pending',
 };
 
 function FilesPanel({ review }: { review: Review }) {
-   const categories = (['implementation', 'tests'] as ReviewFileCategory[])
+   const categories = (['implementation', 'tests'] as const)
       .map((category) => ({
          category,
          files: review.files.filter((file) => file.category === category),
@@ -34,32 +32,28 @@ function FilesPanel({ review }: { review: Review }) {
       <div className="flex flex-col gap-2">
          <span className="text-sm font-medium">{review.files.length} files changed</span>
          {categories.map((group) => {
-            const additions = group.files.reduce((acc, file) => acc + file.additions, 0);
-            const deletions = group.files.reduce((acc, file) => acc + file.deletions, 0);
+            const additions = group.files.reduce((sum, file) => sum + file.additions, 0);
+            const deletions = group.files.reduce((sum, file) => sum + file.deletions, 0);
             return (
                <div key={group.category} className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                     <span className="font-medium text-foreground">
-                        {CATEGORY_LABELS[group.category]}
+                     <span className="font-medium text-foreground capitalize">
+                        {group.category}
                      </span>
                      {group.files.length}
                      <ChevronDown className="size-3" />
                      <span className="flex-1" />
                      <DiffStat additions={additions} deletions={deletions} />
                   </div>
-                  {group.category === 'implementation' ? (
-                     group.files.map((file) => (
-                        <div key={file.name} className="flex items-center gap-1.5 text-xs pl-2">
-                           <FileCode2 className="size-3.5 text-muted-foreground shrink-0" />
-                           <span className="font-medium">{file.name}</span>
+                  {group.files.map((file) => (
+                     <div key={file.filename} className="flex items-center gap-1.5 text-xs pl-2">
+                        <FileCode2 className="size-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-medium truncate">{file.name}</span>
+                        {file.path ? (
                            <span className="text-muted-foreground truncate">{file.path}</span>
-                        </div>
-                     ))
-                  ) : (
-                     <span className="text-xs text-muted-foreground pl-2">
-                        {group.files.map((file) => file.name).join(', ')}
-                     </span>
-                  )}
+                        ) : null}
+                     </div>
+                  ))}
                </div>
             );
          })}
@@ -67,9 +61,8 @@ function FilesPanel({ review }: { review: Review }) {
    );
 }
 
-/** Overview tab: description + timeline on the left, properties on the right. */
-export function ReviewOverview({ review }: { review: Review }) {
-   const { orgId } = useParams<{ orgId: string }>();
+export function ReviewOverview({ review, orgId }: { review: Review; orgId: string }) {
+   const canReview = review.status === 'open' || review.status === 'draft';
 
    return (
       <div className="h-full flex overflow-hidden">
@@ -80,189 +73,121 @@ export function ReviewOverview({ review }: { review: Review }) {
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono flex-wrap">
                      <PrIcon status={review.status} className="size-3.5" />
                      <span>
-                        {review.repo}#{review.prNumber}
+                        {review.repository}#{review.prNumber}
                      </span>
                      <span>·</span>
                      <span>
                         {review.targetBranch} ← {review.sourceBranch}
                      </span>
+                     <span>·</span>
+                     <span>by {review.author}</span>
                   </div>
                </div>
 
-               <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-1 text-sm font-medium">
-                     Description
-                     <ChevronDown className="size-3.5 text-muted-foreground" />
-                  </div>
-                  <h2 className="text-lg font-semibold">Summary</h2>
-                  <ul className="flex flex-col gap-2 list-disc pl-5 text-sm leading-relaxed">
-                     {review.summary.map((bullet, index) => (
-                        <li key={index}>
-                           <InlineText text={bullet} />
-                        </li>
-                     ))}
-                  </ul>
-               </div>
+               <section className="flex flex-col gap-2">
+                  <h2 className="text-sm font-medium">Description</h2>
+                  {review.body ? (
+                     <ReviewMarkdown>{review.body}</ReviewMarkdown>
+                  ) : (
+                     <p className="text-sm text-muted-foreground">No description provided.</p>
+                  )}
+               </section>
 
-               <div className="flex flex-col gap-2">
-                  <h2 className="text-lg font-semibold">Ticket</h2>
-                  <Link
-                     href={`/${orgId}/issue/${review.resolves.identifier}`}
-                     className="inline-flex items-center gap-2 rounded-md bg-muted/60 border border-border/60 px-2 py-1.5 text-sm hover:bg-muted transition-colors self-start"
-                  >
-                     <IssueCheckIcon />
-                     <span className="font-medium">{review.resolves.identifier}</span>
-                     <span className="text-muted-foreground truncate">{review.resolves.title}</span>
-                  </Link>
-               </div>
+               {review.linkedIssue ? (
+                  <section className="flex flex-col gap-2">
+                     <h2 className="text-sm font-medium">Linked issue</h2>
+                     <Link
+                        href={`/${orgId}/issue/${review.linkedIssue.id}`}
+                        className="inline-flex items-center gap-2 rounded-md bg-muted/60 border border-border/60 px-2 py-1.5 text-sm hover:bg-muted transition-colors self-start"
+                     >
+                        <IssueCheckIcon />
+                        <span className="font-medium">{review.linkedIssue.identifier}</span>
+                        <span className="text-muted-foreground truncate">
+                           {review.linkedIssue.title}
+                        </span>
+                     </Link>
+                  </section>
+               ) : null}
 
-               <div className="flex flex-col gap-2">
-                  <h2 className="text-lg font-semibold">Test plan</h2>
-                  <div className="flex flex-col gap-1.5">
-                     {review.testPlan.map((item, index) => (
-                        <label key={index} className="flex items-start gap-2 text-sm">
-                           <Checkbox checked={item.checked} className="size-4 mt-0.5" />
-                           <span>
-                              <InlineText text={item.text} />
+               <ReviewTeam orgId={orgId} pullRequestUrl={review.url} headSha={review.headSha} />
+
+               <section className="flex flex-col gap-2">
+                  <h2 className="text-sm font-medium">Commits</h2>
+                  <div className="rounded-lg border divide-y">
+                     {review.commits.map((commit) => (
+                        <div key={commit.sha} className="flex items-center gap-2 px-3 py-2 text-xs">
+                           <GitCommitHorizontal className="size-3.5 text-muted-foreground shrink-0" />
+                           <span className="font-mono text-muted-foreground">
+                              {commit.sha.slice(0, 7)}
                            </span>
-                        </label>
+                           <span className="flex-1 truncate">{commit.message.split('\n')[0]}</span>
+                           <span className="text-muted-foreground shrink-0">
+                              {commit.author ?? 'Unknown author'}
+                           </span>
+                        </div>
                      ))}
                   </div>
-               </div>
+               </section>
 
-               {review.deployment && (
-                  <div className="rounded-lg border overflow-hidden text-sm">
-                     <div className="grid grid-cols-3 gap-2 px-3 py-2 border-b bg-sidebar/50 text-xs text-muted-foreground">
-                        <span>Project</span>
-                        <span>Deployment</span>
-                        <span>Actions</span>
-                     </div>
-                     <div className="grid grid-cols-3 gap-2 px-3 py-2 items-center">
-                        <span className="font-medium">{review.deployment.project}</span>
-                        <span className="inline-flex items-center gap-1.5">
-                           <span
-                              className={cn(
-                                 'size-2 rounded-full',
-                                 review.deployment.state === 'Ready'
-                                    ? 'bg-emerald-500'
-                                    : 'bg-muted-foreground/50'
-                              )}
-                           />
-                           {review.deployment.state}
-                        </span>
-                        <button className="text-primary text-left hover:underline">
-                           {review.deployment.action}
-                        </button>
-                     </div>
-                  </div>
-               )}
-
-               <div className="flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-muted-foreground">
-                  <span className="size-5 rounded-full bg-muted inline-block shrink-0" />
-                  <span className="flex-1">Leave a reply...</span>
-                  <Paperclip className="size-4" />
-                  <Send className="size-4" />
-               </div>
-
-               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <GitCommitHorizontal className="size-3.5 shrink-0" />
-                  <span className="truncate">
-                     Atlas committed via Circle Agent{' '}
-                     <span className="font-mono">{review.commits.at(-1)?.sha}</span>{' '}
-                     {review.commits.at(-1)?.message} ({review.resolves.identifier}) ·{' '}
-                     {review.commits.at(-1)?.timeAgo}
-                  </span>
-               </div>
-
-               {review.reviewNote && (
-                  <div className="rounded-lg border p-4 flex flex-col gap-3">
-                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="size-5 rounded-full bg-muted inline-block" />
-                        <span className="font-medium text-foreground">
-                           {review.reviewNote.author}
-                        </span>
-                        {review.reviewNote.timeAgo}
-                     </div>
-                     <h3 className="text-base font-semibold">Review results</h3>
-                     <blockquote className="border-l-2 border-emerald-500 pl-3 text-sm leading-relaxed">
-                        {review.reviewNote.verdictLine}
-                     </blockquote>
-                     <p className="text-sm text-muted-foreground leading-relaxed">
-                        {review.reviewNote.profileLine}
-                     </p>
-                     <div className="rounded-md border overflow-hidden text-sm">
-                        <div className="grid grid-cols-5 gap-2 px-3 py-1.5 border-b bg-sidebar/50 text-xs text-muted-foreground">
-                           <span>Review</span>
-                           <span>Verdict</span>
-                           <span>Critical</span>
-                           <span>High</span>
-                           <span>Medium</span>
-                        </div>
-                        {review.reviewNote.rows.map((row) => (
-                           <div
-                              key={row.review}
-                              className="grid grid-cols-5 gap-2 px-3 py-2 border-b last:border-b-0 text-xs items-start"
-                           >
-                              <span className="font-medium">{row.review}</span>
-                              <span>{row.verdict}</span>
-                              <span>{row.critical}</span>
-                              <span>{row.high}</span>
-                              <span>{row.medium}</span>
+               {review.submittedReviews.length > 0 ? (
+                  <section className="flex flex-col gap-2">
+                     <h2 className="text-sm font-medium">GitHub reviews</h2>
+                     <div className="flex flex-col gap-2">
+                        {review.submittedReviews.map((submitted) => (
+                           <div key={submitted.id} className="rounded-lg border p-3 text-sm">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                 <span className="font-medium text-foreground">
+                                    {submitted.author}
+                                 </span>
+                                 <span>
+                                    {REVIEW_STATE_LABELS[submitted.state] ??
+                                       submitted.state.toLowerCase()}
+                                 </span>
+                                 {submitted.submittedLabel ? (
+                                    <span className="ml-auto">{submitted.submittedLabel}</span>
+                                 ) : null}
+                              </div>
+                              {submitted.body ? (
+                                 <div className="mt-2">
+                                    <ReviewMarkdown>{submitted.body}</ReviewMarkdown>
+                                 </div>
+                              ) : null}
                            </div>
                         ))}
                      </div>
-                     {review.reviewNote.footer && (
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                           {review.reviewNote.footer}
-                        </p>
-                     )}
-                  </div>
-               )}
+                  </section>
+               ) : null}
+
+               {canReview ? <ReviewSubmit orgId={orgId} reviewId={review.id} /> : null}
             </div>
          </div>
 
          <aside className="hidden lg:flex flex-col w-72 shrink-0 border-l h-full overflow-y-auto p-5 gap-6">
             <div className="flex flex-col gap-2">
                <span className="text-sm font-medium">Status</span>
-               <span className="inline-flex items-center gap-1.5 text-sm">
+               <span className="inline-flex items-center gap-1.5 text-sm capitalize">
                   <PrIcon status={review.status} />
-                  {review.status === 'merged'
-                     ? 'Merged'
-                     : review.status === 'closed'
-                       ? 'Closed'
-                       : 'Open'}
+                  {review.status}
                </span>
             </div>
             <div className="flex flex-col gap-2">
-               <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Resolves</span>
-                  <Plus className="size-3.5 text-muted-foreground" />
-               </div>
-               <Link
-                  href={`/${orgId}/issue/${review.resolves.identifier}`}
-                  className="flex items-center gap-1.5 text-sm hover:opacity-80 min-w-0"
-               >
-                  <IssueCheckIcon />
-                  <span className="truncate">{review.resolves.title}</span>
-               </Link>
+               <span className="text-sm font-medium">Author</span>
+               <span className="text-sm text-muted-foreground">{review.author}</span>
             </div>
             <div className="flex flex-col gap-2">
-               <span className="text-sm font-medium">Reviewers</span>
-               <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors self-start">
-                  <UserPlus className="size-4" />
-                  Add reviewers
-               </button>
+               <span className="text-sm font-medium">Revision</span>
+               <span className="text-xs font-mono text-muted-foreground">
+                  {review.headSha.slice(0, 12)}
+               </span>
             </div>
             <div className="flex flex-col gap-2">
-               <span className="text-sm font-medium">Checks</span>
-               <span className="inline-flex items-center gap-1.5 text-sm">
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                  {review.checksPassed} / {review.checksTotal} passed
-               </span>
-               <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <span className="size-3.5 rounded-full border-2 border-muted-foreground/50 inline-block" />
-                  gate
-               </span>
+               <span className="text-sm font-medium">Changes</span>
+               <DiffStat additions={review.additions} deletions={review.deletions} />
+               {review.truncated ? (
+                  <span className="text-xs text-amber-600">
+                     Diff is truncated to GitHub’s API limits.
+                  </span>
+               ) : null}
             </div>
             <FilesPanel review={review} />
          </aside>

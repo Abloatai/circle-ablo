@@ -51,10 +51,9 @@ Key facts for coding agents:
   pre-release step, not CI. Assert against the database, never against the
   screen you just wrote to, and verify a new test by breaking the code and
   watching it fail.
-- `lib/features.ts` flags surfaces that exist but are off — Reviews and the
-  integrations settings both render fixtures or connect to nothing. Switching
-  one off means the nav entry stops being a link *and* the route calls
-  `notFound()`.
+- `lib/features.ts` flags surfaces that exist but are off — connected accounts
+  is the remaining one, and it connects to nothing. Switching one off means the
+  nav entry stops being a link *and* the route calls `notFound()`.
 - URLs are `/{orgId}/…` where `orgId` is the workspace slug, taken from the URL
   or `useWorkspace().organizationSlug`. Never hardcode it.
 

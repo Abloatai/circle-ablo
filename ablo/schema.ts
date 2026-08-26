@@ -291,6 +291,85 @@ export const schema = defineSchema(
          }
       ),
 
+      /* ----------------------- cross-model code review ---------------------- */
+
+      reviewMission: model(
+         {
+            workspaceId: field.string().from('organization_id'),
+            teamId: field.string().indexed(),
+            issueId: field.string().indexed(),
+            repositoryId: field.string(),
+            pullRequestUrl: field.string().indexed(),
+            repository: field.string(),
+            pullNumber: field.number(),
+            headSha: field.string().indexed(),
+            requestedById: field.string(),
+            agentRunId: field.string().indexed().optional(),
+            status: field.enum(['queued', 'running', 'waiting', 'succeeded', 'failed', 'canceled']),
+            phase: field.enum(['queued', 'independent', 'cross_review', 'synthesis', 'completed']),
+            verdict: field.enum(['approve', 'request_changes', 'comment']).optional(),
+            summary: field.string().optional(),
+            confidence: field.number().optional(),
+            completedAt: field.date().optional(),
+         },
+         teamScoped('review_mission')
+      ),
+
+      reviewAnalysis: model(
+         {
+            workspaceId: field.string().from('organization_id'),
+            teamId: field.string().indexed(),
+            missionId: field.string().indexed(),
+            model: field.enum(['gpt', 'claude', 'scout']),
+            phase: field.enum(['independent', 'cross_review', 'synthesis']),
+            status: field.enum(['queued', 'running', 'succeeded', 'failed']),
+            summary: field.string().optional(),
+            recommendation: field.enum(['approve', 'request_changes', 'comment']).optional(),
+            confidence: field.number().optional(),
+            result: field.json().optional(),
+            startedAt: field.date().optional(),
+            finishedAt: field.date().optional(),
+         },
+         {
+            ...teamScoped('review_analysis'),
+            relations: {
+               mission: relation.belongsTo('reviewMission', 'missionId', { parent: true }),
+            },
+         }
+      ),
+
+      reviewFinding: model(
+         {
+            workspaceId: field.string().from('organization_id'),
+            teamId: field.string().indexed(),
+            missionId: field.string().indexed(),
+            category: field.enum([
+               'correctness',
+               'security',
+               'tests',
+               'performance',
+               'maintainability',
+            ]),
+            severity: field.enum(['blocker', 'high', 'medium', 'low']),
+            title: field.string(),
+            body: field.string(),
+            evidence: field.string(),
+            path: field.string().optional(),
+            line: field.number().optional(),
+            raisedBy: field.json(),
+            challengedBy: field.json(),
+            resolution: field.enum(['confirmed', 'disputed', 'dismissed']),
+            confidence: field.number(),
+            fingerprint: field.string(),
+         },
+         {
+            ...teamScoped('review_finding'),
+            relations: {
+               mission: relation.belongsTo('reviewMission', 'missionId', { parent: true }),
+            },
+         }
+      ),
+
       comment: model(
          {
             workspaceId: field.string().from('organization_id'),

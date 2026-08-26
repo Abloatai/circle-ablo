@@ -5,9 +5,16 @@ import * as t from '@/db/schema';
 import { getGitHubAppConfig } from './config';
 import type { GitHubMergeMethod } from './merge-request';
 import { parseGitHubPullRequestUrl } from './pull-request-url';
+import {
+   isSearchableRepositoryPath,
+   literalLineMatches,
+   normalizeRepositoryPath,
+   numberedExcerpt,
+} from './repository-context';
 
 const API = 'https://api.github.com';
 const tokenCache = new Map<number, { token: string; expiresAt: number }>();
+const pendingTokens = new Map<number, Promise<string>>();
 
 export class GitHubApiError extends Error {
    constructor(
@@ -69,17 +76,24 @@ export async function githubAppRequest<T>(path: string): Promise<T> {
 export async function installationToken(installationId: number): Promise<string> {
    const cached = tokenCache.get(installationId);
    if (cached && cached.expiresAt > Date.now() + 60_000) return cached.token;
+   const pending = pendingTokens.get(installationId);
+   if (pending) return pending;
 
-   const response = await request<{ token: string; expires_at: string }>(
+   const tokenRequest = request<{ token: string; expires_at: string }>(
       `/app/installations/${installationId}/access_tokens`,
       appJwt(),
       { method: 'POST' }
-   );
-   tokenCache.set(installationId, {
-      token: response.token,
-      expiresAt: new Date(response.expires_at).getTime(),
-   });
-   return response.token;
+   )
+      .then((response) => {
+         tokenCache.set(installationId, {
+            token: response.token,
+            expiresAt: new Date(response.expires_at).getTime(),
+         });
+         return response.token;
+      })
+      .finally(() => pendingTokens.delete(installationId));
+   pendingTokens.set(installationId, tokenRequest);
+   return tokenRequest;
 }
 
 export async function githubInstallationRequest<T>(
@@ -229,6 +243,8 @@ export interface GitHubPullRequestInspection {
    body: string;
    state: 'open' | 'closed' | 'merged' | 'draft';
    author: string;
+   createdAt: string;
+   updatedAt: string;
    baseBranch: string;
    headBranch: string;
    headSha: string;
@@ -274,6 +290,233 @@ async function connectedInstallationForRepository(input: {
    return connected.installationId;
 }
 
+interface GitHubTreeEntry {
+   path: string;
+   mode: string;
+   type: 'blob' | 'tree' | 'commit';
+   sha: string;
+   size?: number;
+}
+
+interface GitHubTreeResponse {
+   sha: string;
+   tree: GitHubTreeEntry[];
+   truncated: boolean;
+}
+
+interface GitHubBlobResponse {
+   sha: string;
+   size: number;
+   encoding: string;
+   content: string;
+}
+
+const repositoryTreeCache = new Map<string, Promise<GitHubTreeResponse>>();
+
+async function getRepositoryTree(
+   installationId: number,
+   coordinates: { owner: string; repository: string },
+   headSha: string
+): Promise<GitHubTreeResponse> {
+   const key = `${installationId}:${coordinates.owner.toLowerCase()}/${coordinates.repository.toLowerCase()}:${headSha}`;
+   const cached = repositoryTreeCache.get(key);
+   if (cached) return cached;
+   const pending = githubInstallationRequest<GitHubTreeResponse>(
+      installationId,
+      `/repos/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repository)}/git/trees/${headSha}?recursive=1`
+   ).catch((error) => {
+      repositoryTreeCache.delete(key);
+      throw error;
+   });
+   // A warm serverless instance may review several stages at the same SHA. Cap
+   // retained trees so that cache reuse cannot become unbounded process memory.
+   if (repositoryTreeCache.size >= 20) {
+      const oldest = repositoryTreeCache.keys().next().value;
+      if (oldest) repositoryTreeCache.delete(oldest);
+   }
+   repositoryTreeCache.set(key, pending);
+   return pending;
+}
+
+async function repositoryRevision(input: {
+   organizationId: string;
+   teamId: string;
+   url: string;
+   headSha: string;
+}): Promise<{
+   coordinates: NonNullable<ReturnType<typeof parseGitHubPullRequestUrl>>;
+   installationId: number;
+   tree: GitHubTreeResponse;
+}> {
+   if (!/^[a-f0-9]{40}$/i.test(input.headSha))
+      throw new Error('A full pinned commit SHA is required');
+   const coordinates = parseGitHubPullRequestUrl(input.url);
+   if (!coordinates) throw new Error('That is not a GitHub pull request URL');
+   const installationId = await connectedInstallationForRepository({
+      organizationId: input.organizationId,
+      teamId: input.teamId,
+      fullName: `${coordinates.owner}/${coordinates.repository}`,
+   });
+   const tree = await getRepositoryTree(installationId, coordinates, input.headSha);
+   return { coordinates, installationId, tree };
+}
+
+function decodeGitHubBlob(blob: GitHubBlobResponse): string {
+   if (blob.encoding !== 'base64') throw new Error('GitHub returned an unsupported file encoding');
+   const content = Buffer.from(blob.content.replaceAll('\n', ''), 'base64').toString('utf8');
+   if (content.includes('\0')) throw new Error('Binary files are not available to reviewers');
+   return content;
+}
+
+async function getRepositoryBlob(
+   installationId: number,
+   coordinates: {
+      owner: string;
+      repository: string;
+   },
+   sha: string
+): Promise<GitHubBlobResponse> {
+   return githubInstallationRequest<GitHubBlobResponse>(
+      installationId,
+      `/repos/${encodeURIComponent(coordinates.owner)}/${encodeURIComponent(coordinates.repository)}/git/blobs/${sha}`
+   );
+}
+
+/** Lists repository paths at the review's exact commit without exposing another ref. */
+export async function listRepositoryFilesAtRevision(input: {
+   organizationId: string;
+   teamId: string;
+   url: string;
+   headSha: string;
+   pathPrefix?: string;
+   query?: string;
+   limit?: number;
+}) {
+   const { tree } = await repositoryRevision(input);
+   const prefix = input.pathPrefix ? normalizeRepositoryPath(input.pathPrefix) : undefined;
+   if (input.pathPrefix && !prefix) throw new Error('The path prefix is invalid');
+   const query = input.query?.trim().toLowerCase();
+   const limit = Math.max(1, Math.min(500, input.limit ?? 200));
+   const matched = tree.tree.filter(
+      (entry) =>
+         entry.type === 'blob' &&
+         (!prefix || entry.path === prefix || entry.path.startsWith(`${prefix}/`)) &&
+         (!query || entry.path.toLowerCase().includes(query))
+   );
+   return {
+      headSha: input.headSha,
+      files: matched.slice(0, limit).map(({ path, sha, size }) => ({ path, sha, size: size ?? 0 })),
+      matched: matched.length,
+      truncated: tree.truncated || matched.length > limit,
+   };
+}
+
+/** Reads a bounded, line-numbered excerpt from one file at the pinned review SHA. */
+export async function readRepositoryFileAtRevision(input: {
+   organizationId: string;
+   teamId: string;
+   url: string;
+   headSha: string;
+   path: string;
+   startLine?: number;
+   endLine?: number;
+}) {
+   const path = normalizeRepositoryPath(input.path);
+   if (!path) throw new Error('The repository path is invalid');
+   const { coordinates, installationId, tree } = await repositoryRevision(input);
+   const entry = tree.tree.find(
+      (candidate) => candidate.type === 'blob' && candidate.path === path
+   );
+   if (!entry) throw new Error('That file does not exist at the reviewed revision');
+   if ((entry.size ?? 0) > 512_000)
+      throw new Error('That file is too large for bounded review context');
+   const blob = await getRepositoryBlob(installationId, coordinates, entry.sha);
+   return {
+      path,
+      headSha: input.headSha,
+      ...numberedExcerpt(decodeGitHubBlob(blob), input.startLine, input.endLine),
+   };
+}
+
+/**
+ * Searches a bounded page of text files at the pinned revision. Pagination and
+ * byte caps keep one model call from turning into an unbounded repository dump.
+ */
+export async function searchRepositoryCodeAtRevision(input: {
+   organizationId: string;
+   teamId: string;
+   url: string;
+   headSha: string;
+   query: string;
+   pathPrefix?: string;
+   cursor?: number;
+   caseSensitive?: boolean;
+}) {
+   const query = input.query.trim();
+   if (query.length < 2) throw new Error('Search queries must contain at least two characters');
+   const prefix = input.pathPrefix ? normalizeRepositoryPath(input.pathPrefix) : undefined;
+   if (input.pathPrefix && !prefix) throw new Error('The path prefix is invalid');
+   const { coordinates, installationId, tree } = await repositoryRevision(input);
+   const eligible = tree.tree
+      .filter(
+         (entry) =>
+            entry.type === 'blob' &&
+            (entry.size ?? 0) > 0 &&
+            (entry.size ?? 0) <= 200_000 &&
+            isSearchableRepositoryPath(entry.path) &&
+            (!prefix || entry.path === prefix || entry.path.startsWith(`${prefix}/`))
+      )
+      .sort((left, right) => left.path.localeCompare(right.path));
+   const cursor = Math.max(0, Math.min(eligible.length, Math.floor(input.cursor ?? 0)));
+   const selected: GitHubTreeEntry[] = [];
+   let selectedBytes = 0;
+   for (const entry of eligible.slice(cursor)) {
+      if (selected.length >= 50 || selectedBytes + (entry.size ?? 0) > 1_500_000) break;
+      selected.push(entry);
+      selectedBytes += entry.size ?? 0;
+   }
+
+   const blobs: Array<{ entry: GitHubTreeEntry; blob: GitHubBlobResponse }> = [];
+   for (let index = 0; index < selected.length; index += 10) {
+      blobs.push(
+         ...(await Promise.all(
+            selected.slice(index, index + 10).map(async (entry) => ({
+               entry,
+               blob: await getRepositoryBlob(installationId, coordinates, entry.sha),
+            }))
+         ))
+      );
+   }
+   const matches: Array<{ path: string; line: number; text: string }> = [];
+   for (const { entry, blob } of blobs) {
+      let content: string;
+      try {
+         content = decodeGitHubBlob(blob);
+      } catch {
+         continue;
+      }
+      for (const match of literalLineMatches(
+         content,
+         query,
+         input.caseSensitive ?? false,
+         Math.max(0, 80 - matches.length)
+      )) {
+         matches.push({ path: entry.path, ...match });
+      }
+      if (matches.length >= 80) break;
+   }
+   const nextCursor = cursor + selected.length;
+   return {
+      query,
+      headSha: input.headSha,
+      matches,
+      scannedFiles: selected.length,
+      eligibleFiles: eligible.length,
+      nextCursor: nextCursor < eligible.length ? nextCursor : undefined,
+      truncated: tree.truncated || nextCursor < eligible.length || matches.length >= 80,
+   };
+}
+
 export async function inspectPullRequest(input: {
    organizationId: string;
    teamId: string;
@@ -299,6 +542,8 @@ export async function inspectPullRequest(input: {
          draft: boolean;
          merged_at: string | null;
          user: { login: string };
+         created_at: string;
+         updated_at: string;
          base: { ref: string };
          head: { ref: string; sha: string };
          additions: number;
@@ -342,6 +587,8 @@ export async function inspectPullRequest(input: {
              ? 'closed'
              : 'open',
       author: pull.user.login,
+      createdAt: pull.created_at,
+      updatedAt: pull.updated_at,
       baseBranch: pull.base.ref,
       headBranch: pull.head.ref,
       headSha: pull.head.sha,

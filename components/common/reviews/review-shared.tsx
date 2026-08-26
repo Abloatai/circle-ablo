@@ -6,6 +6,7 @@ import { Fragment } from 'react';
 
 const PR_ICON_COLORS: Record<ReviewStatus, string> = {
    open: '#1a7f37',
+   draft: '#6e7781',
    merged: '#8250df',
    closed: '#d1242f',
 };
