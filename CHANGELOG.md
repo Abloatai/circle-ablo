@@ -12,6 +12,18 @@ change in a minor release.
 
 Nothing yet.
 
+## [0.6.1]
+
+A patch to how one review tool reports failure.
+
+### Fixed
+
+- **`get_pull_request` returns an error instead of throwing one.** Resolving the
+  run and its review mission happened outside the tool's error handling, so a
+  failure there escaped as an exception rather than the readable error every
+  other path returns. No reviewer could reach it, but a future tool caller on a
+  run without a mission would have seen a raw throw.
+
 ## [0.6.0]
 
 Code review stops being a fixture. Two models review the same pinned revision,
@@ -483,7 +495,8 @@ Each of these was silent rather than loud, which is why it is worth naming:
 - Sixteen links hardcoded the workspace slug, so they navigated to a workspace
   that only existed in the seed.
 
-[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/Abloatai/circle-ablo/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.6.1
 [0.6.0]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.6.0
 [0.5.7]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.7
 [0.5.6]: https://github.com/Abloatai/circle-ablo/releases/tag/v0.5.6
