@@ -33,6 +33,10 @@ test('scoped Circle sessions cannot read another team by ID or filter', async ({
    const foreign = rows.find((r) => !who[0].teamIds.includes(r.team_id));
    expect(own, 'fixture must contain an authorized issue').toBeTruthy();
    expect(foreign, 'fixture must contain an unauthorized team issue').toBeTruthy();
+   const forbiddenCreate = await alice.request.post('/api/issues', {
+      data: { teamId: foreign!.team_id, title: 'forbidden team issue' },
+   });
+   expect(forbiddenCreate.status()).toBe(403);
    const client = Ablo({ schema, apiKey: token, baseURL: process.env.ABLO_API_URL, transport: 'http' });
    try {
       await client.ready();

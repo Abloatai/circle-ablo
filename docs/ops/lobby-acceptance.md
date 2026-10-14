@@ -36,6 +36,10 @@ server-side membership and grants the existing operation allowlist. Agent
 issuance retains its narrower run-derived grants. The browser obtains short-lived
 credentials through `session.endpoint`; it never receives the issuer key.
 Authentication failures must remain failures, not fallback privileged access.
+The issue-create route validates the requested team and relations, then mints a
+short-lived user credential granting only `issue.create` in that team. Its client
+is disposed after the write. Project credentials alone do not authorize writes
+to arbitrary row subjects. Other server-side mutating flows remain unverified.
 
 Each schema model has an organization, team or user subject in addition to the
 Ablo tenant column. Serialization tests verify those subjects survive the released
@@ -73,7 +77,11 @@ names without schema field mapping. The correction is
 [Ablo PR #55](https://github.com/Abloatai/monorepo/pull/55), not a deployed dependency.
 The isolated scoped-session test passes anonymous/cross-origin rejection and
 foreign-team ID/filter denial, with an allowed issue read as a positive control.
-The create-issue browser test has not passed, so authenticated application
-acceptance remains incomplete. After it passes, repeat against mounted
+The October 14 isolated baseline also passed the existing create-issue test:
+real sign-in, a persisted Postgres row, and appearance in a second authenticated
+browser without reloading. Foreign-team issue creation returned 403. This uses
+the corrected backend source build and real test-harness HTTP/WebSocket routes,
+with fresh Postgres and Redis; it is not a released/deployed-backend proof.
+Repeat against mounted
 source during accepted edits and reconnects; this migration alone establishes no
 mount latency, writable-mount behavior or model-agent performance claim.
