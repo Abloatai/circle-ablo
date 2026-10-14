@@ -6,7 +6,7 @@ successful reproduction of the unchanged snapshot. Nothing here deploys Circle.
 
 ## Runtime and credentials
 
-The fixture uses published Ablo 0.66.14, React 19.2.9 and Next 16.4.1; install
+The fixture uses published Ablo 0.66.14, React 19.2.8 and Next 16.4.0; install
 the committed lock with `pnpm install --frozen-lockfile`. Next 15.2's bundled React
 lacked the SDK's `useEffectEvent` dependency even after upgrading React itself.
 The build keeps the previous webpack path explicitly. Next 16 removed `next
@@ -15,7 +15,19 @@ lint`, so lint now invokes the existing ESLint configuration directly.
 Better Auth owns application identity and membership in Postgres. Set
 `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` and server-only
 `ABLO_API_KEY` for an actual acceptance run. Use a fresh disposable database and
-Ablo branch. `db/seed.ts` clears application tables: never run it against an
+Ablo branch. For an isolated backend, set server-side `ABLO_API_URL` and
+build-time `NEXT_PUBLIC_ABLO_API_URL` to the same reachable backend. The browser
+URL is public configuration; never place the API key in a `NEXT_PUBLIC_` variable.
+Omitting these URLs retains SDK endpoint defaults.
+
+The application migrations currently leave some tenant/team columns nullable
+and omit indexes required by the declared Ablo schema. The acceptance harness
+adds these constraints to an empty fixture before schema activation. This is not
+an existing-data migration: backfill tenant/team values and review index creation
+before applying constraints to populated databases. Schema planner rejection
+must not be bypassed.
+
+`db/seed.ts` clears application tables: never run it against an
 existing customer's database. It now supplies project-label team IDs.
 
 `ablo/index.ts` owns the privileged data client and separate session issuer.
@@ -59,6 +71,9 @@ denial. Do not omit either fixture to make a run pass.
 The prior hosted run failed because initial snapshots appended Postgres column
 names without schema field mapping. The correction is
 [Ablo PR #55](https://github.com/Abloatai/monorepo/pull/55), not a deployed dependency.
-The authenticated tests have not passed. After they do, repeat against mounted
+The isolated scoped-session test passes anonymous/cross-origin rejection and
+foreign-team ID/filter denial, with an allowed issue read as a positive control.
+The create-issue browser test has not passed, so authenticated application
+acceptance remains incomplete. After it passes, repeat against mounted
 source during accepted edits and reconnects; this migration alone establishes no
 mount latency, writable-mount behavior or model-agent performance claim.

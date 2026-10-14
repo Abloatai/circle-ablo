@@ -15,6 +15,7 @@ import { schema } from '@/ablo/schema';
  */
 export const ablo = Ablo({
    schema,
+   baseURL: process.env.NEXT_PUBLIC_ABLO_API_URL,
    session: { endpoint: '/api/ablo-session' },
    plugins: [humans()],
 });
