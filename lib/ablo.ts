@@ -15,9 +15,14 @@ import { schema } from '@/ablo/schema';
  */
 export const ablo = Ablo({
    schema,
-   authEndpoint: '/api/ablo-session',
+   session: { endpoint: '/api/ablo-session' },
    plugins: [humans()],
 });
 
 /** Born-typed bindings — `useAblo((a) => a.issue.local.list())` knows the models. */
-export const { AbloProvider, useAblo } = createAbloReact(schema);
+export const {
+   AbloProvider,
+   useAblo,
+   useAbloClient,
+   usePresence: useRecordPresence,
+} = createAbloReact(schema);

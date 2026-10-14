@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { levelFromPriority } from '@/lib/data/hydrate';
 
 /**
@@ -34,7 +34,7 @@ import { levelFromPriority } from '@/lib/data/hydrate';
  * this path and none of them did anything.
  */
 export function useIssueActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
 
    const update = useCallback(
       async (

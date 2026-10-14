@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useWorkspace } from '@/components/providers/workspace-provider';
-import { useAblo } from '@/lib/ablo';
+import { useAblo, useAbloClient } from '@/lib/ablo';
 import { useIssues } from '@/hooks/use-workspace-data';
 import type { InboxItem, NotificationType } from '@/lib/domain/inbox';
 import { toast } from 'sonner';
@@ -19,7 +19,7 @@ const EMPTY_ROWS: never[] = [];
  * status.
  */
 export function useNotifications() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const issues = useIssues();
    const { membersById, viewerId } = useWorkspace();
 

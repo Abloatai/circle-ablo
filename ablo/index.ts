@@ -1,5 +1,6 @@
 import 'server-only';
 import Ablo from '@abloatai/ablo';
+import Sessions from '@abloatai/ablo/sessions';
 import { schema } from './schema';
 
 /**
@@ -8,5 +9,7 @@ import { schema } from './schema';
  * import it into a 'use client' component.
  */
 export const sync = Ablo({ apiKey: process.env.ABLO_API_KEY, schema });
+
+export const sessions = Sessions({ apiKey: process.env.ABLO_API_KEY, schema });
 
 export type Sync = typeof sync;

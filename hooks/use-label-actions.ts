@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 /**
@@ -14,7 +14,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider';
  * delete is refused while any issue still uses it.
  */
 export function useLabelActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
 
    return useMemo(

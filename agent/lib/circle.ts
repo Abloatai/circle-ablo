@@ -8,6 +8,7 @@
  * the agent can touch.
  */
 import Ablo from '@abloatai/ablo';
+import Sessions from '@abloatai/ablo/sessions';
 import { identityAnchor, syncGroup } from '@abloatai/ablo/schema';
 import { and, asc, eq } from 'drizzle-orm';
 import { schema } from '../../ablo/schema';
@@ -16,6 +17,8 @@ import { agentRun, comment } from '../../db/schema/app';
 
 /** Project-scoped, server-only. Used to read the run record and mint tokens. */
 const project = Ablo({ apiKey: process.env.ABLO_API_KEY, schema, transport: 'http' });
+
+const sessions = Sessions({ apiKey: process.env.ABLO_API_KEY, schema });
 
 export interface RunContext {
    runId: string;
@@ -38,7 +41,7 @@ export interface RunContext {
 async function createRunContext(run: typeof agentRun.$inferSelect): Promise<RunContext> {
    await project.ready();
 
-   const session = await project.sessions.create({
+   const session = await sessions.create({
       agent: { id: run.agentUserId },
       can: {
          issue: ['read', 'update'],
@@ -68,7 +71,7 @@ async function createRunContext(run: typeof agentRun.$inferSelect): Promise<RunC
        * `workflowState`, read-only — which is exactly the reference data it
        * needs to name a status and nothing else.
        */
-      syncGroups: [syncGroup('team', run.teamId), identityAnchor('org', run.organizationId)],
+      groups: [syncGroup('team', run.teamId), identityAnchor('org', run.organizationId)],
    });
 
    const ablo = Ablo({ apiKey: session.token, schema, transport: 'http' });

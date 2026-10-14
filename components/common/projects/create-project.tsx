@@ -22,7 +22,7 @@ import {
    SelectTrigger,
    SelectValue,
 } from '@/components/ui/select';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useTeamStatuses } from '@/hooks/use-workspace-data';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
@@ -34,7 +34,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider';
  * would write a row you then cannot see.
  */
 export function CreateProject() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const router = useRouter();
    const { orgId } = useParams<{ orgId: string }>();
    const { teams, myTeamIds, viewerId, organizationId } = useWorkspace();

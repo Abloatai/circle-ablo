@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useIssueActions } from '@/hooks/use-issue-actions';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { notify } from '@/lib/data/notify';
 import { toast } from 'sonner';
 import type { Member } from '@/lib/data/members';
@@ -31,7 +31,7 @@ export function AssigneeUser({ user, issueId, teamId }: AssigneeUserProps) {
    const [currentAssignee, setCurrentAssignee] = useState<User | null>(user);
    const { members, viewerId, organizationId } = useWorkspace();
    const { setAssignee } = useIssueActions();
-   const ablo = useAblo();
+   const ablo = useAbloClient();
 
    useEffect(() => {
       setCurrentAssignee(user);

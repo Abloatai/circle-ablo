@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import type { ViewFilter, ViewType } from '@/lib/domain/views';
 
@@ -16,7 +16,7 @@ import type { ViewFilter, ViewType } from '@/lib/domain/views';
  * from the payload and would leave the old team in place.
  */
 export function useViewActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
 
    const update = useCallback(

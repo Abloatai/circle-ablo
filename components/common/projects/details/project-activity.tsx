@@ -11,7 +11,7 @@ import {
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useWorkspace } from '@/components/providers/workspace-provider';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { cn } from '@/lib/utils';
 import {
    postableHealth,
@@ -83,7 +83,7 @@ export default function ProjectActivity({ projectId }: ProjectActivityProps) {
       () => allIssues.filter((issue) => issue.project?.id === projectId),
       [allIssues, projectId]
    );
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { viewerId, organizationId } = useWorkspace();
    const updates = useProjectUpdates(projectId);
    const [mode, setMode] = useState<'comment' | 'update'>('update');

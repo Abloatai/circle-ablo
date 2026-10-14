@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAblo, useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 /** What can be watched. Matches the enum in `ablo/schema.ts`. */
@@ -61,7 +61,7 @@ export function useSubscriberIds(entityType: SubscriptionEntityType, entityId?: 
  * writing a second one.
  */
 export function useSubscriptionActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId, viewerId } = useWorkspace();
    const rows = useSubscriptions();
 

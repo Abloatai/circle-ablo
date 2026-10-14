@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useWorkspace } from '@/components/providers/workspace-provider';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { notify } from '@/lib/data/notify';
 import { useSubscriberIds } from '@/hooks/use-subscription-actions';
 
@@ -26,7 +26,7 @@ export function CommentComposer({
    /** Assignee and earlier commenters — everyone the reply concerns. */
    participants?: (string | null | undefined)[];
 }) {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { membersById, viewerId, organizationId } = useWorkspace();
    // Subscribing is what turns "I want to hear about this" into a notification.
    // The model is org-scoped precisely so this browser can see who else is

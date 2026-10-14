@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { cn } from '@/lib/utils';
 
@@ -38,7 +38,7 @@ const COLORS = [
 
 /** Creates a workspace label. Labels are org-scoped, so every team sees them. */
 export function CreateLabel() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
    const [open, setOpen] = useState(false);
    const [name, setName] = useState('');

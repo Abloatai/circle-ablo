@@ -269,7 +269,13 @@ async function main() {
    );
 
    const projectLabels = mockProjects.flatMap((p) =>
-      p.labels.map((l) => ({ ...base, id: `pl_${p.id}_${l.id}`, projectId: p.id, labelId: l.id }))
+      p.labels.map((l) => ({
+         ...base,
+         id: `pl_${p.id}_${l.id}`,
+         teamId: p.teamId,
+         projectId: p.id,
+         labelId: l.id,
+      }))
    );
    if (projectLabels.length) await db.insert(t.projectLabel).values(projectLabels);
 
