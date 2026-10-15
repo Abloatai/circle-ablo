@@ -124,3 +124,26 @@ contexts; this is not a new model-agent or whole-network-partition result.
 Detailed measurements and runtime limitations are maintained in
 [Lobby PR #21](https://github.com/Abloatai/lobby/pull/21). Cold dev compilation and
 multi-second hot refresh remain visible performance costs.
+
+## Repeated source-update measurements
+
+`tests/e2e/lobby-source-perf.spec.ts` is an opt-in check for the isolated source
+control harness. In addition to `LOBBY_CONTROL_URL` and `LOBBY_CONTROL_TOKEN`, set
+`LOBBY_PERF_OUTPUT` to a private JSON output path and `LOBBY_CASE` to the case name.
+These are runner-only variables; never expose the control token to the browser.
+The control endpoint accepts the same `/edit?label=` operations as the live test.
+
+The check alternates the sidebar label six times. Each sample records the native
+acceptance duration, operation ID, source manifest, and both authenticated
+browsers' DOM-mutation and subsequent animation-frame timestamps. It asserts that
+both labels become visible without another document request or document-identity
+change, and restores the original label in `finally`. HMR console events are
+recorded separately. Run the existing create-issue, access, and reconnect specs
+alongside it; timing alone does not establish application correctness.
+
+All clocks in the October 15 experiment ran on one VM. The animation-frame
+measurement is an observation proxy, not physical screen paint. The first sample
+is the first *measured* edit; preceding functional checks may already have warmed
+the compiler. Report the remaining five samples as a small warm distribution,
+not a production percentile. Keep cold compiler startup and full-suite duration
+separate. Logs and JSON evidence stay outside Git except sanitized summaries.
