@@ -147,3 +147,38 @@ is the first *measured* edit; preceding functional checks may already have warme
 the compiler. Report the remaining five samples as a small warm distribution,
 not a production percentile. Keep cold compiler startup and full-suite duration
 separate. Logs and JSON evidence stay outside Git except sanitized summaries.
+
+## Ten agents across two application hosts
+
+`tests/e2e/z-lobby-agents.spec.ts` adds an opt-in two-round model-agent check after
+the baseline source tests. In addition to the control and output variables above,
+set `LOBBY_PEER_WS`, `LOBBY_PEER_CONTROL` and `LOBBY_PEER_TOKEN`. `secondTab` then
+connects to the peer's Playwright server, using the same authenticated fixture
+storage state and localhost app port. Without the peer URL, existing tests retain
+their local second browser context. These endpoints grant test/browser control;
+keep them inside the disposable experiment network and out of application config.
+
+The runner owns two source mounts, isolated application services and ten CLI
+participants. Its authenticated `/agents` starts a concurrent round; `/status`
+returns completion, errors, stale rejections and accepted operations. Each agent
+changes one selector attribute plus its own marker on the shared New issue button
+in a single guarded command. Five selector components are shared by pairs of
+agents; all ten contend on the button. Markers are test instrumentation. Round two
+resumes the same conversations with new attribute values. Agents choose their own
+commands and retries; the test supplies no replacement source.
+
+The peer control's `/pause` and `/resume` block and restore its encrypted SSH link
+to the authority host, including source events, application API and database
+connections. Object storage and browser control remain reachable. The test checks
+old peer content while disconnected, final attributes in both real form dialogs,
+unchanged documents, and issue persistence/delivery after reconnect. Assertions
+inspect all ten markers and all five paired selector attributes. CLI completion
+alone never passes the test. Run only on disposable source copies; failure can
+leave edits or a paused connection, so the owning runner must close both controls
+and tear down the test resources in `finally`.
+
+The output records round completion, HMR events, controller-clock catch-up duration
+and application assertions. Round duration includes model calls, retries and
+browser checks; it is not per-edit transport latency. Do not compare browser wall
+clocks across VMs without measuring clock offset. The exact run result and trace
+review live in [Lobby PR #21](https://github.com/Abloatai/lobby/pull/21).
