@@ -72,6 +72,12 @@ requires both an authorized issue and an issue in a team outside the user's
 membership; it checks anonymous/cross-origin mint rejection and direct-ID/list
 denial. Do not omit either fixture to make a run pass.
 
+The create-issue test polls the actual PostgreSQL row for up to 60 seconds after
+submission, retaining its team, count and peer-browser assertions. A fixed
+eight-second sleep failed during cold dev-server compilation of `/api/issues`:
+the browser trace still had an unfinished POST when the row assertion ran.
+A polling timeout remains a test failure; this is not a relaxed persistence check.
+
 The prior hosted run failed because initial snapshots appended Postgres column
 names without schema field mapping. The correction is
 [Ablo PR #55](https://github.com/Abloatai/monorepo/pull/55), not a deployed dependency.
@@ -85,3 +91,36 @@ with fresh Postgres and Redis; it is not a released/deployed-backend proof.
 Repeat against mounted
 source during accepted edits and reconnects; this migration alone establishes no
 mount latency, writable-mount behavior or model-agent performance claim.
+
+
+## Accepted source changes and reconnects
+
+`tests/e2e/lobby-source-live.spec.ts` is an opt-in check for the isolated Lobby
+source-control harness. Set `LOBBY_CONTROL_URL` and `LOBBY_CONTROL_TOKEN` in the
+Playwright process; without them the test is explicitly skipped. These are test
+bridge settings, not application endpoints or browser configuration. The bridge
+must authenticate `/edit?label=...`, `/pause` and `/resume`, apply edits through
+native claims and durable acceptance, and disconnect/reconnect the mounted
+source feed. Use a disposable copy: this test changes the issue button label
+and restores it on success. A failed run can leave the fixture label changed.
+
+Run the app with `next dev --webpack` on the mounted copy and execute:
+
+```sh
+pnpm exec playwright test tests/e2e/create-issue.spec.ts tests/e2e/lobby-access.spec.ts tests/e2e/lobby-source-live.spec.ts --project=e2e
+```
+
+The live check observes an accepted label change in two authenticated browsers,
+keeps the old label during a source-feed disconnection despite a second accepted
+version, then verifies catch-up after reconnect. It checks zero new main-frame
+document requests and unchanged document markers/time origins; same-document
+router events do not count as reloads. It then creates an issue through the
+updated control and verifies persistence, team, count and delivery to the peer.
+
+All three tests passed in the October 15 isolated mounted run, with real Redis
+leases and native durable source acceptance. Typechecking passed as well. The
+control operations were scripted, with one application VM and two browser
+contexts; this is not a new model-agent or whole-network-partition result.
+Detailed measurements and runtime limitations are maintained in
+[Lobby PR #21](https://github.com/Abloatai/lobby/pull/21). Cold dev compilation and
+multi-second hot refresh remain visible performance costs.
