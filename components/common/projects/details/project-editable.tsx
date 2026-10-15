@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { blocksToMarkdown, markdownToBlocks } from '@/lib/data/content-blocks';
 import { cn } from '@/lib/utils';
 import type { ContentBlock } from '@/lib/domain/issue-details';
@@ -22,7 +22,7 @@ export function parseBlocks(value: string | undefined): ContentBlock[] {
 }
 
 function useProjectWrite() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    return async (projectId: string, data: Record<string, unknown>, what: string) => {
       if (!ablo) return;
       try {

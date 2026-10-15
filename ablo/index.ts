@@ -1,5 +1,6 @@
 import 'server-only';
 import Ablo from '@abloatai/ablo';
+import Sessions from '@abloatai/ablo/sessions';
 import { schema } from './schema';
 
 /**
@@ -7,6 +8,8 @@ import { schema } from './schema';
  * mint scoped tokens for people and agents) and by agent processes. Never
  * import it into a 'use client' component.
  */
-export const sync = Ablo({ apiKey: process.env.ABLO_API_KEY, schema });
+export const sync = Ablo({ apiKey: process.env.ABLO_API_KEY, baseURL: process.env.ABLO_API_URL, schema });
+
+export const sessions = Sessions({ apiKey: process.env.ABLO_API_KEY, baseURL: process.env.ABLO_API_URL, schema });
 
 export type Sync = typeof sync;

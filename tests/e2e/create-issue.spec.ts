@@ -43,14 +43,21 @@ test('creating an issue writes a row and reaches a second tab', async ({
    const submit = dialog.getByRole('button', { name: /create issue/i }).first();
    await expect(submit).toBeEnabled();
    await submit.click();
-   await settle(alice, 8000);
 
    // Postgres is the evidence.
-   const row = await one<{ identifier: string; team_id: string }>(
-      `select identifier, team_id from issue where title = $1`,
-      title
-   );
-   expect(row, 'no issue row was written').toBeTruthy();
+   let row: { identifier: string; team_id: string } | undefined;
+   await expect
+      .poll(
+         async () => {
+            row = await one<{ identifier: string; team_id: string }>(
+               `select identifier, team_id from issue where title = $1`,
+               title
+            );
+            return row;
+         },
+         { message: 'no issue row was written', timeout: 60_000 }
+      )
+      .toBeTruthy();
    expect(row!.team_id).toBe(me.teamIds[0]);
    expect(
       await count(`select count(*)::int as n from issue where team_id = $1`, me.teamIds[0])

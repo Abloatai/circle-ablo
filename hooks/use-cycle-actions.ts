@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import type { Cycle, CycleStatus } from '@/lib/domain/cycles';
 
 /**
@@ -13,7 +13,7 @@ import type { Cycle, CycleStatus } from '@/lib/domain/cycles';
  * the count first, the same way status deletion does.
  */
 export function useCycleActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
 
    const update = async (id: string, data: Record<string, unknown>, what: string) => {
       if (!ablo) return;

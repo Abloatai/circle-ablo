@@ -22,7 +22,7 @@ import {
    SelectTrigger,
    SelectValue,
 } from '@/components/ui/select';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { INITIATIVE_STATUS_META, type InitiativeStatus } from '@/lib/domain/initiatives';
 
@@ -35,7 +35,7 @@ const STATUSES = Object.keys(INITIATIVE_STATUS_META) as InitiativeStatus[];
  * there is no team to pick — everyone in the workspace sees it.
  */
 export function CreateInitiative() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const router = useRouter();
    const { orgId } = useParams<{ orgId: string }>();
    const { members, viewerId, organizationId } = useWorkspace();

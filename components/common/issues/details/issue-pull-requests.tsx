@@ -9,7 +9,7 @@ import {
    DropdownMenuItem,
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useIssuePullRequests, type IssuePullRequest } from '@/hooks/use-workspace-data';
 
@@ -47,7 +47,7 @@ function titleFor(url: string): string {
  */
 export function IssuePullRequests({ issueId, teamId }: { issueId: string; teamId: string }) {
    const pullRequests = useIssuePullRequests(issueId);
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
    const [adding, setAdding] = useState(false);
    const [draft, setDraft] = useState('');

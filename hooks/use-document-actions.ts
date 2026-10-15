@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 /**
@@ -13,7 +13,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider';
  * here does.
  */
 export function useDocumentActions(teamId: string) {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
 
    const update = useCallback(

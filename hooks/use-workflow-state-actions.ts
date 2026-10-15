@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import type { StatusCategory } from '@/lib/domain/status';
 
@@ -15,7 +15,7 @@ import type { StatusCategory } from '@/lib/domain/status';
  * fixed when the session is minted.
  */
 export function useWorkflowStateActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
 
    const update = useCallback(

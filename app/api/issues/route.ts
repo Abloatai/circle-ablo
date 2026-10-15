@@ -1,7 +1,10 @@
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import * as t from '@/db/schema';
-import { sync } from '@/ablo';
+import Ablo from '@abloatai/ablo';
+import { syncGroup } from '@abloatai/ablo/schema';
+import { sessions } from '@/ablo';
+import { schema } from '@/ablo/schema';
 import { getViewer } from '@/lib/session';
 
 /**
@@ -60,29 +63,44 @@ export async function POST(request: Request): Promise<Response> {
 
    const number = await nextIssueNumber(teamId, viewer.organizationId);
 
-   await sync.ready();
-   const created = await sync.issue.create({
-      data: {
-         workspaceId: viewer.organizationId,
-         teamId,
-         identifier: `${team.key}-${number}`,
-         title,
-         description: body.description?.trim()
-            ? JSON.stringify([{ type: 'paragraph', text: body.description.trim() }])
-            : '',
-         statusId: body.statusId,
-         assigneeId: body.assigneeId ?? undefined,
-         priority: body.priority ?? 0,
-         projectId: body.projectId ?? undefined,
-         cycleId: body.cycleId ?? undefined,
-         parentIssueId: body.parentIssueId ?? undefined,
-         labelIds: body.labelIds ?? [],
-         // Newest first: the list sorts by rank descending.
-         rank: body.rank ?? `z${Date.now().toString(36)}`,
-      },
+   const { token } = await sessions.create({
+      user: { id: viewer.id },
+      can: { issue: ['create'] },
+      groups: [syncGroup('team', teamId)],
    });
+   const client = Ablo({
+      schema,
+      apiKey: token,
+      baseURL: process.env.ABLO_API_URL,
+      transport: 'http',
+   });
+   try {
+      await client.ready();
+      const created = await client.issue.create({
+         data: {
+            workspaceId: viewer.organizationId,
+            teamId,
+            identifier: `${team.key}-${number}`,
+            title,
+            description: body.description?.trim()
+               ? JSON.stringify([{ type: 'paragraph', text: body.description.trim() }])
+               : '',
+            statusId: body.statusId,
+            assigneeId: body.assigneeId ?? undefined,
+            priority: body.priority ?? 0,
+            projectId: body.projectId ?? undefined,
+            cycleId: body.cycleId ?? undefined,
+            parentIssueId: body.parentIssueId ?? undefined,
+            labelIds: body.labelIds ?? [],
+            // Newest first: the list sorts by rank descending.
+            rank: body.rank ?? `z${Date.now().toString(36)}`,
+         },
+      });
 
-   return Response.json({ id: created.id, identifier: `${team.key}-${number}` });
+      return Response.json({ id: created.id, identifier: `${team.key}-${number}` });
+   } finally {
+      await client.dispose();
+   }
 }
 
 async function validateRelations(

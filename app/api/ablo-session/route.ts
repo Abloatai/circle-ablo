@@ -4,7 +4,7 @@ import {
    credentialEndpointSuccessSchema,
 } from '@abloatai/ablo/auth';
 import { identityAnchor, syncGroup } from '@abloatai/ablo/schema';
-import { sync } from '@/ablo';
+import { sessions } from '@/ablo';
 import { getViewer } from '@/lib/session';
 
 const noStore = { 'Cache-Control': 'no-store' };
@@ -37,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
       );
    }
 
-   const { token, expiresAt } = await sync.sessions.create({
+   const { token, expiresAt } = await sessions.create({
       user: { id: viewer.id },
       can: {
          issue: ['read', 'create', 'update', 'delete'],
@@ -71,7 +71,7 @@ export async function POST(request: Request): Promise<Response> {
       // subscribed to nothing. `team` is this schema's own role, so it uses the
       // general form. A member always gets at least the first two: an empty
       // group list closes the session rather than widening it.
-      syncGroups: [
+      groups: [
          identityAnchor('org', viewer.organizationId),
          identityAnchor('user', viewer.id),
          ...viewer.teamIds.map((teamId) => syncGroup('team', teamId)),
