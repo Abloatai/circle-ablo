@@ -6,7 +6,7 @@ successful reproduction of the unchanged snapshot. Nothing here deploys Circle.
 
 ## Runtime and credentials
 
-The fixture uses published Ablo 0.66.14, React 19.2.8 and Next 16.4.0; install
+The fixture uses published Ablo 0.66.16, React 19.2.8 and Next 16.4.0; install
 the committed lock with `pnpm install --frozen-lockfile`. Next 15.2's bundled React
 lacked the SDK's `useEffectEvent` dependency even after upgrading React itself.
 The build keeps the previous webpack path explicitly. Next 16 removed `next
@@ -62,9 +62,12 @@ Presence grants no authorization and is not a write lock.
 
 ## Verification and remaining gate
 
-Run `pnpm exec tsc --noEmit`, `pnpm test:unit` and `pnpm build`. The unit suite
-includes serialization and multiple-session presence regressions. Full lint is
-not established by these checks. UI presence has not been browser-verified.
+CI runs the frozen install, `pnpm exec tsc --noEmit`, `pnpm lint`,
+`pnpm test:unit` and `pnpm build` (webpack). The unit suite includes serialization
+and multiple-session presence regressions. `unrs-resolver` uses its lockfile-pinned
+optional platform binding; its fallback download/install script is explicitly
+disabled in `allowBuilds`. Unknown dependency scripts still fail installation.
+UI presence has not been browser-verified.
 
 For actual acceptance, run the existing `create-issue.spec.ts` plus
 `lobby-access.spec.ts` against the isolated configured services. The latter
@@ -91,7 +94,6 @@ with fresh Postgres and Redis; it is not a released/deployed-backend proof.
 Repeat against mounted
 source during accepted edits and reconnects; this migration alone establishes no
 mount latency, writable-mount behavior or model-agent performance claim.
-
 
 ## Accepted source changes and reconnects
 
@@ -143,7 +145,7 @@ alongside it; timing alone does not establish application correctness.
 
 All clocks in the October 15 experiment ran on one VM. The animation-frame
 measurement is an observation proxy, not physical screen paint. The first sample
-is the first *measured* edit; preceding functional checks may already have warmed
+is the first _measured_ edit; preceding functional checks may already have warmed
 the compiler. Report the remaining five samples as a small warm distribution,
 not a production percentile. Keep cold compiler startup and full-suite duration
 separate. Logs and JSON evidence stay outside Git except sanitized summaries.

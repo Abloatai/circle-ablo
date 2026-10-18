@@ -1,6 +1,8 @@
 allowBuilds:
   esbuild: true
   sharp: true
+  # Platform bindings are optional dependencies in the frozen lockfile.
+  unrs-resolver: false
 
 minimumReleaseAgeExclude:
   - "@ai-sdk/*"

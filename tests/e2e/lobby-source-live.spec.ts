@@ -28,9 +28,9 @@ test('accepted source edits and reconnect preserve authenticated issue creation'
    const documents = await Promise.all(
       pages.map((page) =>
          page.evaluate(() => {
-            (window as any).lobbyDocumentMarker = crypto.randomUUID();
+            window.lobbyDocumentMarker = crypto.randomUUID();
             return {
-               marker: (window as any).lobbyDocumentMarker,
+               marker: window.lobbyDocumentMarker,
                timeOrigin: performance.timeOrigin,
             };
          })
@@ -41,7 +41,7 @@ test('accepted source edits and reconnect preserve authenticated issue creation'
          if (request.isNavigationRequest() && request.frame() === page.mainFrame())
             documentRequests++;
       });
-   const timings: any[] = [];
+   const timings: Record<string, unknown>[] = [];
    async function accepted(label: string) {
       const start = Date.now();
       const result = await control('/edit?label=' + encodeURIComponent(label));
@@ -87,7 +87,7 @@ test('accepted source edits and reconnect preserve authenticated issue creation'
    for (let i = 0; i < pages.length; i++)
       expect(
          await pages[i].evaluate(() => ({
-            marker: (window as any).lobbyDocumentMarker,
+            marker: window.lobbyDocumentMarker,
             timeOrigin: performance.timeOrigin,
          }))
       ).toEqual(documents[i]);

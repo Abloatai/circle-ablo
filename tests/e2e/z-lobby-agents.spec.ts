@@ -2,6 +2,14 @@ import { test, expect } from '../helpers/fixtures';
 import { one, count } from '../helpers/db';
 import { type as typeInto } from '../helpers/ui';
 import { writeFile } from 'node:fs/promises';
+interface AgentStatus {
+   error?: string;
+   round: number;
+   running: boolean;
+   stale: number;
+   commits: { actor: string }[];
+}
+
 test('ten model agents change the live form across two application hosts', async ({
    alice,
    secondTab,
@@ -36,7 +44,7 @@ test('ten model agents change the live form across two application hosts', async
    const pages = [alice, secondTab],
       me = who[0],
       landing = `/${me.orgSlug}/team/${me.teamIds[0]}/all`,
-      events: any[] = [];
+      events: Record<string, unknown>[] = [];
    for (const [index, page] of pages.entries()) {
       await page.goto(landing);
       await expect(page.getByRole('button', { name: 'New issue', exact: true })).toBeVisible();
@@ -48,8 +56,8 @@ test('ten model agents change the live form across two application hosts', async
    const identities = await Promise.all(
       pages.map((page) =>
          page.evaluate(() => {
-            (window as any).lobbyIdentity = crypto.randomUUID();
-            return (window as any).lobbyIdentity;
+            window.lobbyIdentity = crypto.randomUUID();
+            return window.lobbyIdentity;
          })
       )
    );
@@ -58,22 +66,28 @@ test('ten model agents change the live form across two application hosts', async
       p.on('request', (r) => {
          if (r.isNavigationRequest() && r.frame() === p.mainFrame()) navigations++;
       });
-   const rounds: any[] = [];
+   const rounds: {
+      round: number;
+      elapsedMs: number;
+      peerResumeToObservedMs: number;
+      status: AgentStatus;
+   }[] = [];
    for (const round of [1, 2]) {
       if (round === 2) await command('/pause', true);
       const started = Date.now();
       await command('/agents');
-      let status: any;
+      let status: AgentStatus | undefined;
       await expect
          .poll(
             async () => {
-               status = await command('/status');
+               status = (await command('/status')) as AgentStatus;
                if (status.error) throw Error(status.error);
                return status.round === round && !status.running;
             },
             { timeout: 600000, intervals: [1000] }
          )
          .toBe(true);
+      if (!status) throw new Error('Agent status was not observed');
       for (let i = 0; i < 10; i++)
          await expect(
             alice.getByRole('button', { name: 'New issue', exact: true })
@@ -106,7 +120,7 @@ test('ten model agents change the live form across two application hosts', async
       }
       expect(navigations).toBe(0);
       for (let i = 0; i < 2; i++)
-         expect(await pages[i].evaluate(() => (window as any).lobbyIdentity)).toBe(identities[i]);
+         expect(await pages[i].evaluate(() => window.lobbyIdentity)).toBe(identities[i]);
       rounds.push({
          round,
          elapsedMs: Date.now() - started,
@@ -114,9 +128,10 @@ test('ten model agents change the live form across two application hosts', async
          status,
       });
    }
-   const last = rounds.at(-1).status;
+   const last = rounds.at(-1)?.status;
+   if (!last) throw new Error('No agent round completed');
    expect(last.stale).toBeGreaterThan(0);
-   expect(new Set(last.commits.map((c: any) => c.actor)).size).toBe(10);
+   expect(new Set(last.commits.map((c) => c.actor)).size).toBe(10);
    const before = await count(
       'select count(*)::int as n from issue where team_id=$1',
       me.teamIds[0]

@@ -9,8 +9,8 @@ test('measure repeated accepted source edits', async ({ alice, secondTab, who })
    );
    test.setTimeout(480000);
    const pages = [alice, secondTab],
-      events: any[] = [],
-      samples: any[] = [];
+      events: Record<string, unknown>[] = [],
+      samples: Record<string, unknown>[] = [];
    const control = async (label: string) => {
       const response = await fetch(
          process.env.LOBBY_CONTROL_URL + '/edit?label=' + encodeURIComponent(label),
@@ -28,7 +28,7 @@ test('measure repeated accepted source edits', async ({ alice, secondTab, who })
       await page.goto(landing);
       await expect(page.getByRole('button', { name: 'New issue', exact: true })).toBeVisible();
       await page.evaluate(() => {
-         const w = window as any;
+         const w = window;
          w.perfSamples = [];
          w.perfTarget = null;
          w.perfDocument = crypto.randomUUID();
@@ -52,7 +52,7 @@ test('measure repeated accepted source edits', async ({ alice, secondTab, who })
    const identities = await Promise.all(
       pages.map((p) =>
          p.evaluate(() => ({
-            marker: (window as any).perfDocument,
+            marker: window.perfDocument,
             timeOrigin: performance.timeOrigin,
          }))
       )
@@ -68,7 +68,7 @@ test('measure repeated accepted source edits', async ({ alice, secondTab, who })
          await Promise.all(
             pages.map((p) =>
                p.evaluate((label) => {
-                  (window as any).perfTarget = label;
+                  window.perfTarget = label;
                }, label)
             )
          );
@@ -84,13 +84,13 @@ test('measure repeated accepted source edits', async ({ alice, secondTab, who })
          );
          await Promise.all(
             pages.map((p) =>
-               p.waitForFunction((n) => (window as any).perfSamples.length === n, i + 1, {
+               p.waitForFunction((n) => window.perfSamples.length === n, i + 1, {
                   timeout: 60000,
                })
             )
          );
          const observations = await Promise.all(
-            pages.map((p) => p.evaluate(() => (window as any).perfSamples.at(-1)))
+            pages.map((p) => p.evaluate(() => window.perfSamples.at(-1)))
          );
          samples.push({
             iteration: i,
@@ -106,7 +106,7 @@ test('measure repeated accepted source edits', async ({ alice, secondTab, who })
          for (let n = 0; n < 2; n++)
             expect(
                await pages[n].evaluate(() => ({
-                  marker: (window as any).perfDocument,
+                  marker: window.perfDocument,
                   timeOrigin: performance.timeOrigin,
                }))
             ).toEqual(identities[n]);
