@@ -426,9 +426,8 @@ export const schema = defineSchema(
       /**
        * Who is watching what.
        *
-       * Org-scoped, unlike `favorite`: posting a comment has to notify the
-       * other subscribers, and that write happens in the commenter's browser,
-       * so their client must be able to see subscriptions that are not theirs.
+       * Org-scoped, unlike `favorite`. Notification delivery resolves these
+       * watchers on the server and checks current team access before writing.
        */
       subscription: model(
          {

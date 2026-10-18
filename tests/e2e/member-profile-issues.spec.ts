@@ -14,10 +14,12 @@ test('a member profile shows issues assigned with workspace-defined statuses', a
          join member m on m.user_id = u.id and m.organization_id = i.organization_id
          join workflow_state ws on ws.id = i.status_id
         where i.organization_id = $1
+          and exists (select 1 from team_member tm where tm.team_id = i.team_id and tm.user_id = $2)
           and ws.category not in ('completed', 'canceled')
         order by case when u.type = 'agent' then 0 else 1 end, i.created_at
         limit 1`,
-      me.orgId
+      me.orgId,
+      me.id
    );
    expect(assignment, 'the workspace has no active assigned issue').toBeTruthy();
 

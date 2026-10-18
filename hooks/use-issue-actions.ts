@@ -56,11 +56,13 @@ export function useIssueActions() {
                data,
                ...(claim ? { claim: claim as never } : {}),
             });
+            return true;
          } catch (error) {
             // The optimistic change has already been rolled back at this point.
             toast.error(`Could not update ${what}`, {
                description: error instanceof Error ? error.message : undefined,
             });
+            return false;
          }
       },
       [ablo]

@@ -23,7 +23,7 @@
       "test:ui": "playwright test --project=e2e --ui"
    },
    "dependencies": {
-      "@abloatai/ablo": "0.66.14",
+      "@abloatai/ablo": "0.66.16",
       "@hookform/resolvers": "^4.1.2",
       "@kayron013/lexorank": "^2.0.0",
       "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -81,8 +81,8 @@
       "zustand": "^5.0.3"
    },
    "devDependencies": {
-      "@abloatai/cli": "0.66.14",
-      "@abloatai/humans": "0.66.14",
+      "@abloatai/cli": "0.66.16",
+      "@abloatai/humans": "0.66.16",
       "@eslint/eslintrc": "^3",
       "@playwright/test": "^1.62.1",
       "@tailwindcss/postcss": "^4",

@@ -182,3 +182,50 @@ and application assertions. Round duration includes model calls, retries and
 browser checks; it is not per-edit transport latency. Do not compare browser wall
 clocks across VMs without measuring clock offset. The exact run result and trace
 review live in [Lobby PR #21](https://github.com/Abloatai/lobby/pull/21).
+
+## Full application suite on deployed staging
+
+Use released SDK/CLI/humans 0.66.16 and the frozen lockfile. The operator owns a
+fresh synthetic Ablo tenant and a disposable application database reachable by
+the staging backend. Never point the seed or tests at the staging control-plane
+database. Database and Ablo credentials stay outside Git and test reports.
+
+`CIRCLE_ACCEPTANCE_MAPPING` names a JSON file containing `fixtureId`,
+`databaseName`, `databaseRole`, `abloTenantId`, `organizationId`, `teamId`, and
+three distinct `userIds`. The database name must begin `circle_acceptance_`.
+The operator must install the database comment
+`circle-acceptance/<fixtureId>/<abloTenantId>` only on the freshly created,
+exclusively owned test database. This marker is checked with the actual database,
+role, and schema; it does not restrict the privileges of the supplied credential.
+
+For the existing seed, use organization `org_circle`, shared team `DESIGN`, and
+users `abigail`, `aiden`, `alex`, in that order. Supply the actual synthetic Ablo
+tenant separately. Login refuses mixed tenant rows or a different organization;
+it does not select whichever organization happens to be oldest. The pool prefers
+`DATABASE_URL_POOLED` when set, so verify that connection as well.
+
+Apply migrations and the reviewed source database contract, register the source
+using `ablo connect apply`, then push the schema. Seed refuses occupied public
+tables and never truncates them. A partial seed must be inspected rather than
+rerun over existing data. After seeding, request `ablo connect resnapshot` and
+wait for `ablo connect check` to confirm readiness.
+
+Build with both `ABLO_API_URL` and `NEXT_PUBLIC_ABLO_API_URL` targeting
+`https://api-staging.abloatai.com`. Record the build ID and source/lock hashes;
+this is a different artifact from the earlier loopback build. Set `CI=1` so
+Playwright starts its own production server, then run the full inventory:
+
+```sh
+pnpm exec playwright test --project=e2e --list
+PLAYWRIGHT_JSON_OUTPUT_NAME=/private/test-results.json CI=1 \
+  pnpm exec playwright test --project=e2e --workers=1 --retries=0 \
+  --trace=retain-on-failure --reporter=list,json
+```
+
+The three source/model-agent tests skip unless their dedicated harness variables
+are supplied. Report those skips separately; application acceptance does not
+reprove live source propagation or ten-agent behavior. Review real browser and
+database assertions, not only an exit code. Traces can contain session tokens;
+keep them private. On completion or failure, remove only the owned source
+registration, credentials, synthetic tenant, database and compute resources,
+and independently verify cleanup. Existing staging services remain in place.
