@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAblo, useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 /** What can be watched. Matches the enum in `ablo/schema.ts`. */
@@ -18,9 +18,8 @@ export interface SubscriptionRow {
 /**
  * Every subscription in the workspace, not just the viewer's.
  *
- * The model is org-scoped on purpose: posting a comment has to notify the
- * other people watching the issue, and that write happens in the commenter's
- * browser, so their client needs to see subscriptions that are not their own.
+ * The model is org-scoped; notification delivery separately resolves its
+ * recipients on the server after checking the persisted event and membership.
  *
  * Read unconditionally — a selector that returns early subscribes to nothing
  * and never updates again.
@@ -42,17 +41,6 @@ export function useIsSubscribed(entityType: SubscriptionEntityType, entityId?: s
    }, [rows, viewerId, entityType, entityId]);
 }
 
-/** Everyone watching one thing. Used to decide who a notification reaches. */
-export function useSubscriberIds(entityType: SubscriptionEntityType, entityId?: string): string[] {
-   const rows = useSubscriptions();
-   return useMemo(() => {
-      if (!entityId) return [];
-      return rows
-         .filter((row) => row.entityType === entityType && row.entityId === entityId)
-         .map((row) => row.userId);
-   }, [rows, entityType, entityId]);
-}
-
 /**
  * Subscribing and unsubscribing.
  *
@@ -61,7 +49,7 @@ export function useSubscriberIds(entityType: SubscriptionEntityType, entityId?: 
  * writing a second one.
  */
 export function useSubscriptionActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId, viewerId } = useWorkspace();
    const rows = useSubscriptions();
 

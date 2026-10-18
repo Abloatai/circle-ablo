@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 /** What the panel offers, which is not quite what the model stores. */
@@ -27,7 +27,7 @@ export const LINK_RELATION_LABEL: Record<LinkRelation, string> = {
  * relies on it.
  */
 export function useIssueLinkActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
 
    return useMemo(

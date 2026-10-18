@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 /**
@@ -13,7 +13,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider';
  * is not in would be a row they immediately cannot see.
  */
 export function useProjectDetailActions(projectId: string, teamId: string) {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId } = useWorkspace();
 
    return useMemo(

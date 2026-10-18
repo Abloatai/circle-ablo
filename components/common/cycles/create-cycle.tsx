@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 import { useCycles } from '@/hooks/use-workspace-data';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
@@ -30,7 +30,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider';
  * round trip; the number is a label here, not an identity.
  */
 export function CreateCycle() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { teamId } = useParams<{ teamId: string }>();
    const { teams, teamByKey, organizationId } = useWorkspace();
    const cycles = useCycles();

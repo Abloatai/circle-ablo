@@ -34,7 +34,7 @@ export default async function OrgLayout({
    ]);
 
    return (
-      <Providers userId={viewer.id}>
+      <Providers>
          <WorkspaceProvider
             members={members}
             teams={teams}

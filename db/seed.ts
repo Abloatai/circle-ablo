@@ -11,11 +11,12 @@
  * every issue gets a team, every person gets an account they can sign in with,
  * and one member is an agent.
  *
- * Run: pnpm db:seed   (destructive — it clears the work tables first)
+ * Run only with CIRCLE_ACCEPTANCE_MAPPING on an empty dedicated fixture database.
  */
 import { sql } from 'drizzle-orm';
 import { sync } from '../ablo';
 import { db, getPool } from './index';
+import { readAcceptanceMapping, assertEmptySeedDatabase } from './acceptance';
 import * as t from './schema';
 import { auth } from '../lib/auth';
 import { users as mockUsers } from '../lib/domain/users';
@@ -65,16 +66,21 @@ function iconKey(icon: unknown): string | null {
 }
 
 async function main() {
-   console.log('clearing work tables…');
-   await db.execute(sql`
-      truncate table
-         issue_counter, issue_link, issue_activity, comment, issue, cycle,
-         project_label, project_milestone, project_update, project_resource, project,
-         initiative, label, workflow_state, notification, document, document_folder,
-         saved_view, agent_message, agent_run,
-         team_member, member, invitation, team, organization, session, account, "user"
-      restart identity cascade
-   `);
+   const mapping = readAcceptanceMapping();
+   if (
+      mapping.organizationId !== ORG_ID ||
+      !mockTeams.some((t) => t.id === mapping.teamId) ||
+      !mapping.userIds.every((id) =>
+         mockUsers.some((u) => u.id === id && u.teamIds.includes(mapping.teamId))
+      )
+   ) {
+      throw new Error('Mapping does not match the seed organization, users and shared team');
+   }
+   await assertEmptySeedDatabase(getPool(), mapping);
+   await sync.ready();
+   const abloTenantId = sync.identity?.organizationId;
+   if (abloTenantId !== mapping.abloTenantId) throw new Error('Seed Ablo tenant mismatch');
+   // Never truncate: a mistaken target or a partial prior seed must preserve its rows.
 
    /* ------------------------------- identity ------------------------------- */
 
@@ -191,11 +197,6 @@ async function main() {
    // a model that is not row-local tenant scoped at all. It is read from the
    // credential rather than configured, because a forgotten env var here is
    // invisible: the rows land fine and simply never appear in the app.
-   await sync.ready();
-   const abloTenantId = sync.identity?.organizationId ?? null;
-   if (!abloTenantId) throw new Error('Could not resolve the Ablo tenant id from ABLO_API_KEY');
-   console.log('ablo tenant:', abloTenantId);
-
    const base = {
       organizationId: ORG_ID,
       abloTenantId,
@@ -269,7 +270,13 @@ async function main() {
    );
 
    const projectLabels = mockProjects.flatMap((p) =>
-      p.labels.map((l) => ({ ...base, id: `pl_${p.id}_${l.id}`, projectId: p.id, labelId: l.id }))
+      p.labels.map((l) => ({
+         ...base,
+         id: `pl_${p.id}_${l.id}`,
+         teamId: p.teamId,
+         projectId: p.id,
+         labelId: l.id,
+      }))
    );
    if (projectLabels.length) await db.insert(t.projectLabel).values(projectLabels);
 

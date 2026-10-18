@@ -1,83 +1,27 @@
 /**
- * The Ablo contract: which rows humans and agents coordinate on.
- *
- * Derived from `db/schema/app.ts` (via `ablo pull drizzle`), then given the two
- * things a pull cannot infer:
- *
- * - **identityRoles** — how a signed-in person maps to sync groups. The sources
- *   are the fields Better Auth's organization plugin puts on the session, so a
- *   member automatically sees their org and their teams and nothing else.
- * - **groups** — which group each row fans out on. Team-scoped rows name their
- *   team; rows that live inside another row (a comment, a milestone) inherit
- *   through a `parent` relation instead.
- *
- * Identity itself (user / organization / team / member) is NOT modelled here.
- * Better Auth owns those tables and writes them directly, so they stay in the
- * ORM and are loaded server-side; only work data is coordinated.
+ * Circle work records use organization, team or user subjects for scoped access.
+ * Better Auth owns identity tables; /api/ablo-session derives grants from membership.
  */
-import {
-   defineSchema,
-   entityRole,
-   field,
-   identityRole,
-   model,
-   relation,
-   z,
-} from '@abloatai/ablo/schema';
+import { defineSchema, field, identityRole, model, relation, z } from '@abloatai/ablo/schema';
 
 /**
- * The table each model maps to is always spelled out: the model names are
- * camelCase for the client API (`ablo.workflowState`), while the columns and
- * tables Drizzle created are snake_case.
- */
-/**
- * Model names are camelCase because they are the client API (`ablo.issue`,
- * `ablo.workflowState`); the tables Drizzle created are snake_case. Every model
- * names its table explicitly rather than relying on a conversion.
- */
-/**
- * Ablo's tenancy column is its own, not the application's.
- *
- * It is pointed at `ablo_tenant_id` rather than the default `organization_id`,
- * which this schema already uses for the Better Auth organization: Ablo stamps
- * its own organization id into whatever column it is given, so sharing the
- * column puts app rows in a workspace the app cannot see.
- *
- * This column isolates nothing. The database belongs to exactly one Ablo
- * organization, so every row carries the same value and the filter passes for
- * all of them. It is here because **a mutable model must be row-local tenant
- * scoped or Ablo refuses the commit** — `{ by: 'none' }` marks a model as
- * global reference data, and every write to it fails with
- * `tenant_model_missing_organization_id`. That is the whole reason it exists;
- * switching it off cost the app every write path.
- *
- * Sync groups route live delivery but are not the authorization boundary for
- * HTTP reads. This deployment therefore requires one Ablo organization per
- * customer before it can be treated as a hard multi-tenant boundary. The
- * Better Auth membership check in /api/ablo-session still derives every group
- * server-side and prevents a stale active organization from minting access.
- *
- * The secret key is the exception, and is meant to be. `sync` in `ablo/index.ts`
- * holds `ABLO_API_KEY` and can mint a session with any groups it likes, which is
- * what lets the server allocate issue numbers and run agents. Keep it server-
- * side; it is as privileged as `DATABASE_URL`.
- *
- * One Ablo organization per customer — minted with the `organization:act-as`
- * scope — is the stronger form, worth reaching for if this ever hosts customers
- * under separate contracts. It is not what stands between two workspaces here.
+ * Ablo's tenant column is separate from Circle's organization_id. Subjects below
+ * constrain individual actors within that tenant; the secret issuer key remains
+ * privileged and must never reach the browser. Negative-access tests must pass
+ * before treating this adapted fixture as a verified authorization boundary.
  */
 const tenancy = { by: 'column', column: 'ablo_tenant_id' } as const;
 
 const orgScoped = (tableName: string) => ({
    tableName,
    policy: tenancy,
-   groups: { roles: [entityRole({ kind: 'org', source: 'workspaceId' })] },
+   subject: { field: 'workspaceId', group: 'org' },
 });
 
 const teamScoped = (tableName: string) => ({
    tableName,
    policy: tenancy,
-   groups: { roles: [entityRole({ kind: 'team', source: 'teamId' })] },
+   subject: { field: 'teamId', group: 'team' },
 });
 
 export const schema = defineSchema(
@@ -86,7 +30,7 @@ export const schema = defineSchema(
 
       workflowState: model(
          {
-            workspaceId: field.string().from('organization_id'),
+            workspaceId: field.string().from('organization_id').min(1),
             teamId: field.string().optional(),
             name: field.string(),
             color: field.string(),
@@ -105,7 +49,7 @@ export const schema = defineSchema(
 
       label: model(
          {
-            workspaceId: field.string().from('organization_id'),
+            workspaceId: field.string().from('organization_id').min(1),
             name: field.string(),
             color: field.string(),
             /** A group holds labels and is never applied to an issue itself. */
@@ -119,7 +63,7 @@ export const schema = defineSchema(
 
       initiative: model(
          {
-            workspaceId: field.string().from('organization_id'),
+            workspaceId: field.string().from('organization_id').min(1),
             name: field.string(),
             description: field.string().optional(),
             icon: field.string().optional(),
@@ -136,8 +80,8 @@ export const schema = defineSchema(
 
       project: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             name: field.string(),
             summary: field.string().optional(),
             /** Block JSON, the same shape an issue description uses. */
@@ -161,8 +105,8 @@ export const schema = defineSchema(
 
       projectLabel: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             projectId: field.string(),
             labelId: field.string(),
          },
@@ -174,8 +118,8 @@ export const schema = defineSchema(
 
       projectMilestone: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             projectId: field.string(),
             name: field.string(),
             targetDate: field.string().optional(),
@@ -190,8 +134,8 @@ export const schema = defineSchema(
 
       projectUpdate: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             projectId: field.string(),
             authorId: field.string(),
             health: field.enum(['no-update', 'on-track', 'at-risk', 'off-track']),
@@ -205,8 +149,8 @@ export const schema = defineSchema(
 
       projectResource: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             projectId: field.string(),
             title: field.string(),
             url: field.string(),
@@ -221,8 +165,8 @@ export const schema = defineSchema(
 
       cycle: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             number: field.number(),
             name: field.string(),
             status: field.enum(['planned', 'upcoming', 'current', 'completed']),
@@ -237,8 +181,8 @@ export const schema = defineSchema(
 
       issue: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             identifier: field.string().indexed(),
             title: field.string(),
             description: field.string().default(''),
@@ -267,8 +211,8 @@ export const schema = defineSchema(
 
       issueLink: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             issueId: field.string().indexed(),
             relatedIssueId: field.string().indexed(),
             type: field.enum(['blocks', 'related', 'duplicates']),
@@ -278,8 +222,8 @@ export const schema = defineSchema(
 
       issuePullRequest: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             issueId: field.string().indexed(),
             url: field.string(),
             title: field.string(),
@@ -295,8 +239,8 @@ export const schema = defineSchema(
 
       reviewMission: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             issueId: field.string().indexed(),
             repositoryId: field.string(),
             pullRequestUrl: field.string().indexed(),
@@ -317,8 +261,8 @@ export const schema = defineSchema(
 
       reviewAnalysis: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             missionId: field.string().indexed(),
             model: field.enum(['gpt', 'claude', 'scout']),
             phase: field.enum(['independent', 'cross_review', 'synthesis']),
@@ -340,8 +284,8 @@ export const schema = defineSchema(
 
       reviewFinding: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             missionId: field.string().indexed(),
             category: field.enum([
                'correctness',
@@ -372,8 +316,8 @@ export const schema = defineSchema(
 
       comment: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             issueId: field.string().indexed(),
             authorId: field.string(),
             body: field.string(),
@@ -388,8 +332,8 @@ export const schema = defineSchema(
 
       issueActivity: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             issueId: field.string().indexed(),
             actorId: field.string(),
             type: field.string(),
@@ -405,8 +349,8 @@ export const schema = defineSchema(
 
       documentFolder: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().min(1),
             name: field.string(),
             icon: field.string().optional(),
          },
@@ -415,8 +359,8 @@ export const schema = defineSchema(
 
       document: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             folderId: field.string().optional(),
             title: field.string(),
             icon: field.string().optional(),
@@ -427,7 +371,7 @@ export const schema = defineSchema(
 
       savedView: model(
          {
-            workspaceId: field.string().from('organization_id'),
+            workspaceId: field.string().from('organization_id').min(1),
             teamId: field.string().optional(),
             name: field.string(),
             icon: field.string().optional(),
@@ -443,8 +387,8 @@ export const schema = defineSchema(
       /** Only reaches its recipient: the group is the user, not the team. */
       notification: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            userId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            userId: field.string().indexed().min(1),
             type: field.string(),
             issueId: field.string().optional(),
             actorId: field.string().optional(),
@@ -454,7 +398,7 @@ export const schema = defineSchema(
          {
             tableName: 'notification',
             policy: tenancy,
-            groups: { roles: [entityRole({ kind: 'user', source: 'userId' })] },
+            subject: { field: 'userId', group: 'user' },
          }
       ),
 
@@ -467,29 +411,28 @@ export const schema = defineSchema(
        */
       favorite: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            userId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            userId: field.string().indexed().min(1),
             entityType: field.enum(['issue', 'project', 'cycle', 'document', 'view', 'team']),
             entityId: field.string().indexed(),
          },
          {
             tableName: 'favorite',
             policy: tenancy,
-            groups: { roles: [entityRole({ kind: 'user', source: 'userId' })] },
+            subject: { field: 'userId', group: 'user' },
          }
       ),
 
       /**
        * Who is watching what.
        *
-       * Org-scoped, unlike `favorite`: posting a comment has to notify the
-       * other subscribers, and that write happens in the commenter's browser,
-       * so their client must be able to see subscriptions that are not theirs.
+       * Org-scoped, unlike `favorite`. Notification delivery resolves these
+       * watchers on the server and checks current team access before writing.
        */
       subscription: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            userId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            userId: field.string().indexed().min(1),
             entityType: field.enum(['issue', 'team', 'project']),
             entityId: field.string().indexed(),
          },
@@ -500,11 +443,11 @@ export const schema = defineSchema(
 
       agentRun: model(
          {
-            workspaceId: field.string().from('organization_id'),
+            workspaceId: field.string().from('organization_id').min(1),
             agentUserId: field.string(),
             requestedById: field.string(),
             issueId: field.string().indexed().optional(),
-            teamId: field.string().indexed(),
+            teamId: field.string().indexed().min(1),
             status: field.enum(['queued', 'running', 'waiting', 'succeeded', 'failed', 'canceled']),
             sessionId: field.string().optional(),
             prompt: field.string(),
@@ -524,8 +467,8 @@ export const schema = defineSchema(
        */
       agentMessage: model(
          {
-            workspaceId: field.string().from('organization_id'),
-            teamId: field.string().indexed(),
+            workspaceId: field.string().from('organization_id').min(1),
+            teamId: field.string().indexed().min(1),
             runId: field.string().optional(),
             authorId: field.string(),
             kind: field.enum(['status', 'request', 'handoff', 'result']),

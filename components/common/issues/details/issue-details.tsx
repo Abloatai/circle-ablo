@@ -158,11 +158,6 @@ export default function IssueDetails() {
                <CommentComposer
                   issueId={issue.id}
                   teamId={issue.teamId ?? ''}
-                  participants={[
-                     issue.assignee?.id,
-                     issue.createdBy,
-                     ...activity.map((item) => item.actor.id),
-                  ]}
                />
             </div>
          </div>

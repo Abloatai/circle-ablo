@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAblo, useAbloClient } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
 const EMPTY_ROWS: never[] = [];
@@ -52,7 +52,7 @@ export function useIsFavorite(entityType: FavoriteEntityType, entityId?: string)
  * the toggle deletes the existing row rather than adding a second one.
  */
 export function useFavoriteActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const { organizationId, viewerId } = useWorkspace();
    const favorites = useFavorites();
 

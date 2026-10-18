@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 
 type Held = { release: () => Promise<void> } & Record<string, unknown>;
 
@@ -28,7 +28,7 @@ type Held = { release: () => Promise<void> } & Record<string, unknown>;
  * editor stays usable and `blocked` says who is busy, so the person can decide.
  */
 export function useFieldClaim(model: 'issue', id: string | undefined, field: string) {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
    const held = useRef<Held | null>(null);
    const [blocked, setBlocked] = useState<string | null>(null);
 

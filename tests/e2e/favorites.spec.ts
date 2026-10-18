@@ -70,25 +70,23 @@ test('a favourite belongs to one person only', async ({ alice, bob, who }) => {
    await settle(alice, 6000);
    await settle(bob, 6000);
 
+   const bobsRowsBefore = await count(
+      `select count(*)::int as n from favorite where user_id = $1`, them.id
+   );
+   const bobsSidebarBefore = await sidebarGroupItems(bob, 'Favorites');
    await openIssueMenu(alice);
    const starred = (await menuItem(alice, 'Unfavorite').count()) > 0;
    await (starred ? menuItem(alice, 'Unfavorite') : menuItem(alice, 'Favorite')).click();
-   await settle(alice);
-   await settle(bob);
-
-   // Bob's Favorites must be unaffected by anything Alice starred.
-   expect(await count(`select count(*)::int as n from favorite where user_id = $1`, them.id)).toBe(
-      await count(`select count(*)::int as n from favorite where user_id = $1`, them.id)
-   );
-   const bobsRows = await count(
-      `select count(*)::int as n from favorite where user_id = $1`,
-      them.id
-   );
-   const bobsSidebar = await sidebarGroupItems(bob, 'Favorites');
-   expect(bobsSidebar.length).toBe(bobsRows);
-
-   // Put it back.
-   await openIssueMenu(alice);
-   await (starred ? menuItem(alice, 'Favorite') : menuItem(alice, 'Unfavorite')).click();
-   await settle(alice);
+   try {
+      await settle(alice);
+      await settle(bob);
+      expect(await count(
+         `select count(*)::int as n from favorite where user_id = $1`, them.id
+      )).toBe(bobsRowsBefore);
+      expect(await sidebarGroupItems(bob, 'Favorites')).toEqual(bobsSidebarBefore);
+   } finally {
+      await openIssueMenu(alice);
+      await (starred ? menuItem(alice, 'Favorite') : menuItem(alice, 'Unfavorite')).click();
+      await settle(alice);
+   }
 });

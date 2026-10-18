@@ -1,4 +1,4 @@
-import { test as base, type Page } from '@playwright/test';
+import { test as base, chromium, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { TestPerson } from './people';
@@ -12,7 +12,8 @@ async function people(): Promise<TestPerson[]> {
 
 /**
  * `alice` and `bob` are two different signed-in people, and `secondTab` is
- * alice again in a separate browser context.
+ * alice again in a separate browser context. LOBBY_PEER_WS connects that context
+ * to the browser on the isolated peer host; its app uses the same localhost port.
  *
  * The two-browser check is the point: workspace data is supposed to arrive
  * without a reload, and a reload test passes either way because the row is
@@ -60,12 +61,17 @@ export const test = base.extend<
    },
 
    secondTab: async ({ browser, who }, use) => {
-      const context = await browser.newContext({
+      const remote = process.env.LOBBY_PEER_WS
+         ? await chromium.connect(process.env.LOBBY_PEER_WS)
+         : undefined;
+      const context = await (remote ?? browser).newContext({
+         baseURL: 'http://localhost:' + (process.env.E2E_PORT ?? '3100'),
          storageState: path.join(AUTH_DIR, `${who[0].id}.json`),
       });
       const page = await context.newPage();
       await use(page);
       await context.close();
+      await remote?.close();
    },
 });
 

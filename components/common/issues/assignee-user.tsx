@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 import { useIssueActions } from '@/hooks/use-issue-actions';
-import { useAblo } from '@/lib/ablo';
 import { notify } from '@/lib/data/notify';
 import { toast } from 'sonner';
 import type { Member } from '@/lib/data/members';
@@ -29,9 +28,8 @@ interface AssigneeUserProps {
 export function AssigneeUser({ user, issueId, teamId }: AssigneeUserProps) {
    const [open, setOpen] = useState(false);
    const [currentAssignee, setCurrentAssignee] = useState<User | null>(user);
-   const { members, viewerId, organizationId } = useWorkspace();
+   const { members } = useWorkspace();
    const { setAssignee } = useIssueActions();
-   const ablo = useAblo();
 
    useEffect(() => {
       setCurrentAssignee(user);
@@ -39,20 +37,13 @@ export function AssigneeUser({ user, issueId, teamId }: AssigneeUserProps) {
 
    const assignable = teamId ? members.filter((m) => m.teamIds.includes(teamId)) : members;
 
-   const assign = (next: Member | null) => {
+   const assign = async (next: Member | null) => {
       // Optimistic locally; the write below is what everyone else sees.
       setCurrentAssignee(next);
       setOpen(false);
       if (!issueId) return;
-      void setAssignee(issueId, next?.id ?? null);
-      void notify({
-         ablo,
-         workspaceId: organizationId,
-         actorId: viewerId,
-         issueId,
-         type: 'assignment',
-         recipients: [next?.id],
-      });
+      if (!(await setAssignee(issueId, next?.id ?? null))) return;
+      void notify({ issueId, type: 'assignment' });
 
       // Handing work to an agent is an ordinary assignment plus a run: the
       // agent picks the issue up the way a person would notice it in their queue.

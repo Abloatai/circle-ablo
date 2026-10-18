@@ -1,28 +1,15 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { usePeers } from '@abloatai/humans/react';
-import { ablo } from '@/lib/ablo';
+import { useAblo, useRecordPresence } from '@/lib/ablo';
 import { useWorkspace } from '@/components/providers/workspace-provider';
 
-/** One person (or agent) currently connected to the workspace. */
-export interface Presence {
-   userId: string;
-   isAgent: boolean;
-   /** 'viewing', 'editing', 'idle', … — free-form, see `activityFor`. */
-   action: string;
-   /** What they are on: 'issue', 'project', 'team', 'view', … */
-   entityType: string;
-   entityId: string;
-   /** Human-readable: "CORE-142", "Members". */
-   detail?: string;
-   /** ISO timestamp of their last frame. */
-   lastActive: string;
-}
+import { presenceForSessions, type Presence } from '@/lib/data/presence';
+export type { Presence } from '@/lib/data/presence';
 
 interface PresenceValue {
-   /** Everyone connected right now, the viewer included. */
+   /** Actors with visible record activity, plus this viewer. */
    live: Presence[];
    byUserId: Map<string, Presence>;
    isLive: (userId: string) => boolean;
@@ -30,54 +17,34 @@ interface PresenceValue {
 
 const PresenceContext = createContext<PresenceValue | null>(null);
 
-/**
- * Who is live in the workspace.
- *
- * This is Ablo's presence stream, not a database column: presence is
- * ephemeral, and a row that says "online" outlives the tab that set it — the
- * `user.status` column could only ever be a guess, and was always a stale one
- * after a crash or a closed laptop. The stream is authoritative instead,
- * because the server drops a participant when its socket goes.
- *
- * It costs no extra connection: presence frames ride the same WebSocket the
- * issues already sync over.
- */
+/** Active record participants visible to this viewer's authorized sync groups. */
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
    const { viewerId } = useWorkspace();
    const pathname = usePathname();
 
-   // No scope: everyone on the viewer's own sync groups, which is their
-   // organization and their teams — so, the workspace.
-   const peers = usePeers();
-
-   // Tell the workspace what this tab is looking at, and take it back when the
-   // tab is hidden: a backgrounded tab is still connected but nobody is there.
+   const [visible, setVisible] = useState(true);
    useEffect(() => {
-      const announce = () => {
-         if (document.visibilityState === 'hidden') {
-            ablo.presence.idle();
-            return;
-         }
-         const activity = activityFor(pathname);
-         ablo.presence.update(activity);
-      };
+      const update = () => setVisible(document.visibilityState !== 'hidden');
+      update();
+      document.addEventListener('visibilitychange', update);
+      return () => document.removeEventListener('visibilitychange', update);
+   }, []);
 
-      announce();
-      document.addEventListener('visibilitychange', announce);
-      return () => document.removeEventListener('visibilitychange', announce);
-   }, [pathname]);
+   const route = activityFor(pathname);
+   const issueId = useAblo((client) =>
+      route.entityType === 'issue'
+         ? client.issue.local.list({}).find((issue) => issue.identifier === route.entityId)?.id
+         : undefined
+   );
+   const projectId = useAblo((client) =>
+      route.entityType === 'project' ? client.project.local.get(route.entityId)?.id : undefined
+   );
+   const peers = useAblo((client) =>
+      presenceForSessions(client.presence.others, (id) => client.issue.local.get(id)?.identifier)
+   );
 
    const value = useMemo<PresenceValue>(() => {
-      const live: Presence[] = peers.map((peer) => ({
-         userId: peer.participantId,
-         isAgent: peer.participantKind === 'agent',
-         action: peer.activity.action,
-         entityType: peer.activity.entityType,
-         entityId: peer.activity.entityId,
-         detail: peer.activity.detail,
-         lastActive: peer.lastActive,
-      }));
-
+      const live = (peers ?? []).filter((peer) => peer.userId !== viewerId);
       // The stream filters out our own echo, but the viewer is plainly here.
       live.unshift({
          userId: viewerId,
@@ -90,7 +57,23 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
       return { live, byUserId, isLive: (userId) => byUserId.has(userId) };
    }, [peers, viewerId, pathname]);
 
-   return <PresenceContext.Provider value={value}>{children}</PresenceContext.Provider>;
+   return (
+      <PresenceContext.Provider value={value}>
+         {visible && issueId && <IssueReadPresence id={issueId} />}
+         {visible && projectId && <ProjectReadPresence id={projectId} />}
+         {children}
+      </PresenceContext.Provider>
+   );
+}
+
+function IssueReadPresence({ id }: { id: string }) {
+   useRecordPresence((client) => client.issue, id);
+   return null;
+}
+
+function ProjectReadPresence({ id }: { id: string }) {
+   useRecordPresence((client) => client.project, id);
+   return null;
 }
 
 export function usePresence(): PresenceValue {
@@ -105,7 +88,7 @@ export function useIsLive(userId: string): boolean {
 }
 
 /**
- * The current route as an activity peers can read.
+ * The current route for the viewer’s own display label.
  *
  * The entity ids here are the ones in the URL — an issue identifier like
  * CORE-142 rather than its uuid — because the only consumer is another

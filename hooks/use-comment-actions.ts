@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { useAblo } from '@/lib/ablo';
+import { useAbloClient } from '@/lib/ablo';
 
 /**
  * Edits and deletes a comment.
@@ -15,7 +15,7 @@ import { useAblo } from '@/lib/ablo';
  * is a question about the person looking at it, not about the write.
  */
 export function useCommentActions() {
-   const ablo = useAblo();
+   const ablo = useAbloClient();
 
    return useMemo(
       () => ({
