@@ -1,9 +1,7 @@
 name: CI
 
 on:
-   push:
-      branches: [main]
-   pull_request:
+  workflow_dispatch:
 
 # A newer push to the same branch makes the older run pointless.
 concurrency:
