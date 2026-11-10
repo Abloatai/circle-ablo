@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.envrc
 !.env.example
 
 # vercel
@@ -55,3 +56,4 @@ next-env.d.ts
 tests/.auth/
 playwright-report/
 test-results/
+.direnv/
