@@ -19,3 +19,13 @@ minimumReleaseAgeExclude:
   - '@abloatai/cli@0.66.16'
   - '@abloatai/humans@0.66.16'
   - '@abloatai/transaction@0.66.16'
+
+# Security fixes for transitive dependencies whose parent pins a vulnerable
+# version exactly. Remove each entry once the parent ships the fix.
+overrides:
+  # eve 0.x pins undici 8.9.0; only eve 1.x moves to a fixed undici.
+  'eve>undici': ^8.12.2
+  # @vercel/connect 0.4.3 -> @vercel/oidc 3.8.1 -> @vercel/cli-config 0.2.1 pins zod 4.1.11.
+  '@vercel/cli-config>zod': ^4.6.6
+  # drizzle-kit still declares @esbuild-kit/esm-loader, whose core-utils pins esbuild ~0.18.20.
+  '@esbuild-kit/core-utils>esbuild': ^0.25.0
