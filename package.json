@@ -2,7 +2,7 @@
    "name": "circle",
    "version": "0.6.1",
    "private": true,
-   "packageManager": "pnpm@11.7.0",
+   "packageManager": "pnpm@11.28.13",
    "scripts": {
       "dev": "next dev --turbopack",
       "build": "next build --webpack",
@@ -86,7 +86,7 @@
       "@eslint/eslintrc": "^3",
       "@playwright/test": "^1.62.1",
       "@tailwindcss/postcss": "^4",
-      "@types/node": "^20",
+      "@types/node": "^24.19.2",
       "@types/pg": "^8.21.0",
       "@types/react": "^19",
       "@types/react-dom": "^19",
