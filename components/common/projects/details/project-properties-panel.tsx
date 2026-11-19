@@ -17,7 +17,8 @@ import { PanelFilterTarget, usePanelFilter } from '@/components/common/issues/us
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { ProjectProgressChart } from './project-progress-chart';
-import { ArrowRight, Calendar, Check, Compass, Plus, Slack, Tag, UserPlus, X } from 'lucide-react';
+import { RiSlackLine } from '@remixicon/react';
+import { ArrowRight, Calendar, Check, Compass, Plus, Tag, UserPlus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 interface ProjectPropertiesPanelProps {
@@ -274,7 +275,7 @@ export function ProjectPropertiesPanel({ project, issues }: ProjectPropertiesPan
                         disabled
                         className="flex items-center gap-1.5 text-muted-foreground opacity-50"
                      >
-                        <Slack className="size-3.5" />
+                        <RiSlackLine className="size-3.5" />
                         Connect channel
                      </button>
                   </Unavailable>

@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProjectMilestones, useProjects } from '@/hooks/use-workspace-data';
 import { useTeams } from '@/hooks/use-workspace-data';
 import { useIssues } from '@/hooks/use-workspace-data';
+import { RiSlackLine } from '@remixicon/react';
 import { format, parseISO } from 'date-fns';
 import {
    ArrowRight,
@@ -13,7 +14,6 @@ import {
    ChevronRight,
    Compass,
    Plus,
-   Slack,
    Star,
    Tag,
    UserPlus,
@@ -192,7 +192,7 @@ export function ProjectPeekPanel({ projectId, onClose }: ProjectPeekPanelProps) 
                         disabled
                         className="flex items-center gap-1.5 text-muted-foreground opacity-50"
                      >
-                        <Slack className="size-3.5" />
+                        <RiSlackLine className="size-3.5" />
                         Connect channel
                      </button>
                   </Unavailable>
