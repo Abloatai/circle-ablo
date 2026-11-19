@@ -1,5 +1,13 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, text, timestamp, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+   pgTable,
+   text,
+   timestamp,
+   boolean,
+   integer,
+   index,
+   uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
    id: text('id').primaryKey(),
@@ -98,6 +106,8 @@ export const team = pgTable(
    {
       id: text('id').primaryKey(),
       name: text('name').notNull(),
+      /** Kept by the Better Auth 1.7 organization plugin as members are added and removed. */
+      memberCount: integer('member_count').default(0).notNull(),
       organizationId: text('organization_id')
          .notNull()
          .references(() => organization.id, { onDelete: 'cascade' }),
@@ -127,6 +137,8 @@ export const teamMember = pgTable(
       userId: text('user_id')
          .notNull()
          .references(() => user.id, { onDelete: 'cascade' }),
+      /** Better Auth 1.7: a hash of (teamId, userId) that makes an add idempotent. */
+      membershipKey: text('membership_key').unique(),
       createdAt: timestamp('created_at'),
    },
    (table) => [

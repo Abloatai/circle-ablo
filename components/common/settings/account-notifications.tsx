@@ -1,7 +1,8 @@
 'use client';
 
 import { Switch } from '@/components/ui/switch';
-import { Mail, Monitor, Slack, Smartphone } from 'lucide-react';
+import { RiSlackLine } from '@remixicon/react';
+import { Mail, Monitor, Smartphone } from 'lucide-react';
 import { SettingsCard, SettingsRow, SettingsSection, SettingsShell } from './shared';
 
 const CHANNELS = [
@@ -14,7 +15,7 @@ const CHANNELS = [
       title: 'Mobile',
    },
    { icon: <Mail className="size-4" />, title: 'Email' },
-   { icon: <Slack className="size-4" />, title: 'Slack' },
+   { icon: <RiSlackLine className="size-4" />, title: 'Slack' },
 ];
 
 /** Personal notification settings (push channels + product updates). */

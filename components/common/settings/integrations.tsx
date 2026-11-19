@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ExternalLink, Github, Loader2, RefreshCw, Unplug } from 'lucide-react';
+import { RiGithubLine } from '@remixicon/react';
+import { ExternalLink, Loader2, RefreshCw, Unplug } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -141,7 +142,7 @@ export default function Integrations({
             action={
                configured && canManage ? (
                   <Button size="sm" onClick={() => window.location.assign('/api/github/install')}>
-                     <Github />
+                     <RiGithubLine />
                      {installations.length ? 'Add installation' : 'Connect GitHub'}
                   </Button>
                ) : undefined
@@ -150,7 +151,7 @@ export default function Integrations({
             {!configured ? (
                <SettingsCard>
                   <div className="flex items-start gap-3 px-4 py-4">
-                     <Github className="size-5 mt-0.5" />
+                     <RiGithubLine className="size-5 mt-0.5" />
                      <div>
                         <p className="text-sm font-medium">GitHub App credentials are missing</p>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -164,7 +165,7 @@ export default function Integrations({
                <SettingsCard>
                   <div className="flex items-center gap-3 px-4 py-5">
                      <span className="inline-flex size-9 items-center justify-center rounded-md bg-muted">
-                        <Github className="size-5" />
+                        <RiGithubLine className="size-5" />
                      </span>
                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">No GitHub installation connected</p>
@@ -184,7 +185,7 @@ export default function Integrations({
                   {installations.map((installation) => (
                      <SettingsCard key={installation.id}>
                         <div className="flex items-center gap-3 px-4 py-3">
-                           <Github className="size-5" />
+                           <RiGithubLine className="size-5" />
                            <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium truncate">
                                  {installation.accountLogin}
