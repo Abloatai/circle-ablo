@@ -1,0 +1,58 @@
+# Dependabot: grouped security updates, monthly grouped version updates.
+#
+# - Security updates open as soon as an alert appears, whatever the schedule.
+#   They are grouped so one advisory wave is one PR. The repository setting
+#   "Dependabot security updates" turns them on; this file only shapes them.
+# - Version updates run monthly for what ships: the Circle Next.js app (pnpm,
+#   which Dependabot handles under `npm`), the CI workflow's actions, and the
+#   Nix dev shell's flake inputs. Minor and patch updates collapse into one PR
+#   per ecosystem; majors stay individual.
+# - `cooldown` waits a week after a release before proposing it, so a
+#   compromised or yanked version has time to be caught upstream. Security
+#   updates ignore it. It complements pnpm's own minimumReleaseAge.
+#
+# Reference:
+# https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      npm-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      actions-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # flake.lock inputs. Nix has version updates only (no advisories), and
+  # Dependabot supports it on public repositories only.
+  - package-ecosystem: nix
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      flake-inputs:
+        patterns: ["*"]
