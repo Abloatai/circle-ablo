@@ -97,7 +97,7 @@ export async function POST(request: Request): Promise<Response> {
               .attach(existing.sessionId)
               .send(message)
               .then((r) => r.result())
-         : client.sessions.create({ message }).then(({ response }) => response.result());
+         : client.sessions.create({ message }).then(({ delivery }) => delivery.result());
 
       /**
        * A turn is bounded here, and the bound is not a failure.
@@ -127,7 +127,18 @@ export async function POST(request: Request): Promise<Response> {
          return Response.json({ runId: run.id, status: 'running', pending: true }, { status: 202 });
       }
 
-      const reply = result.message?.trim();
+      const reply = result.reply?.trim();
+      // eve 1 reports the request, not the session. Map it back to the session
+      // states this route has always used: a finished turn on a session that
+      // stays open, or one paused for input, is `waiting`.
+      const status =
+         result.status === 'completed'
+            ? result.sessionEnded
+               ? 'completed'
+               : 'waiting'
+            : result.status === 'awaiting-input'
+              ? 'waiting'
+              : 'failed';
       if (reply) {
          await sync.agentMessage.create({
             data: {
@@ -147,18 +158,14 @@ export async function POST(request: Request): Promise<Response> {
             // `waiting` is the agent parked for the next message, which is what
             // a chat is between turns. Only `completed` finishes the run.
             status:
-               result.status === 'waiting'
-                  ? 'waiting'
-                  : result.status === 'completed'
-                    ? 'succeeded'
-                    : 'failed',
+               status === 'waiting' ? 'waiting' : status === 'completed' ? 'succeeded' : 'failed',
             sessionId: result.sessionId,
             ...(reply ? { result: reply } : {}),
-            ...(result.status === 'completed' ? { finishedAt: new Date() } : {}),
+            ...(status === 'completed' ? { finishedAt: new Date() } : {}),
          },
       });
 
-      return Response.json({ runId: run.id, reply: reply ?? null, status: result.status });
+      return Response.json({ runId: run.id, reply: reply ?? null, status });
    } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not reach the agent runtime';
       // The failure is a row, not a toast: whoever opens the chat later needs to

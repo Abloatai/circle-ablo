@@ -59,7 +59,7 @@ Run this exact sequence:
 
 1. Call `get_assignment`, then mark both `gpt` and `claude` `independent`
    analyses running with `update_review_analysis`.
-2. In the same response, call `gpt-reviewer` and `claude-reviewer` so their
+2. In the same response, call `ask_gpt_reviewer` and `ask_claude_reviewer` so their
    independent reviews execute concurrently. Give each the exact Circle
    `runId` returned by `get_assignment` (not the mission id), PR URL, pinned
    SHA, and independent-review task. Tell them to start from the diff and use

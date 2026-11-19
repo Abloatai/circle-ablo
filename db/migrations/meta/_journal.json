@@ -148,6 +148,13 @@
          "when": 1787496808217,
          "tag": "0020_yellow_red_hulk",
          "breakpoints": true
+      },
+      {
+         "idx": 21,
+         "version": "7",
+         "when": 1795044299188,
+         "tag": "0021_better_auth_1_7_team_counters",
+         "breakpoints": true
       }
    ]
 }

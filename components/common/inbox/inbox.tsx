@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useGroupRef } from 'react-resizable-panels';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useNotificationsStore } from '@/store/notifications-store';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -42,6 +43,8 @@ import {
 
 type DeleteMode = 'all' | 'read' | 'completed';
 
+const LAYOUT_KEY = 'inbox-panel-group';
+
 export default function Inbox() {
    const { notifications, markAsRead, markAllAsRead, deleteAll, deleteRead, deleteCompleted } =
       useNotifications();
@@ -49,6 +52,17 @@ export default function Inbox() {
    const getUnreadNotifications = () => notifications.filter((item) => !item.read);
 
    const isMobile = useIsMobile();
+   const groupRef = useGroupRef();
+   // Restored after mount, as react-resizable-panels 3's autoSaveId did, so the
+   // server-rendered layout and the first client render agree.
+   useEffect(() => {
+      try {
+         const saved = localStorage.getItem(LAYOUT_KEY);
+         if (saved) groupRef.current?.setLayout(JSON.parse(saved));
+      } catch {
+         localStorage.removeItem(LAYOUT_KEY);
+      }
+   }, [groupRef]);
    const [showRead, setShowRead] = useState(true);
    const [showSnoozed, setShowSnoozed] = useState(false);
    const [showUnreadFirst, setShowUnreadFirst] = useState(false);
@@ -303,15 +317,18 @@ export default function Inbox() {
 
    return (
       <ResizablePanelGroup
-         direction="horizontal"
-         autoSaveId="inbox-panel-group"
+         orientation="horizontal"
+         groupRef={groupRef}
+         onLayoutChanged={(layout, { isUserInteraction }) => {
+            if (isUserInteraction) localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+         }}
          className="w-full h-full"
       >
-         <ResizablePanel defaultSize={350} maxSize={500}>
+         <ResizablePanel id="list" defaultSize="50%">
             {listPane}
          </ResizablePanel>
          <ResizableHandle withHandle />
-         <ResizablePanel defaultSize={350} maxSize={500}>
+         <ResizablePanel id="preview" defaultSize="50%">
             <NotificationPreview notification={selectedNotification} onMarkAsRead={markAsRead} />
          </ResizablePanel>
       </ResizablePanelGroup>

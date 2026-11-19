@@ -16,7 +16,7 @@ export function createAgentClient(): Client {
       ? { Authorization: `Basic ${Buffer.from(`circle:${secret}`).toString('base64')}` }
       : undefined;
 
-   return new Client({ host: url ?? 'http://127.0.0.1:2000', headers });
+   return new Client({ baseUrl: url ?? 'http://127.0.0.1:2000', headers });
 }
 
 export async function findWorkspaceAgent(
